@@ -48,9 +48,31 @@ def current_state():
     result['game_id'] = c.fetchone()['id']
 
     
-    c.execute("""select services.id as service_id, services.name as service_name from services;""")
+    c.execute("""select services.id as service_id, services.name as service_name, services.port as port from services;""")
     result['services'] = c.fetchall()
+    
+    # need to decide what scripts to run
 
+    c.execute("""select scripts.id as script_id, scripts.is_bundle as is_bundle, scripts.name as script_name, scripts.type as type, scripts.service_id as service_id from scripts""")
+
+    result['scripts'] = c.fetchall()
+
+    c.execute("""select team_scripts_run_status.team_id as team_id, team_scripts_run_status.json_list_of_scripts_to_run as json_list from team_scripts_run_status where team_scripts_run_status.tick_id = %s""", (current_tick,))
+
+    run_scripts = []
+    
+    for team_scripts_to_run in c.fetchall():
+        team_id = team_scripts_to_run['team_id']
+        json_list = team_scripts_to_run['json_list']
+
+        list_of_services = json.loads(json_list)
+
+        run_scripts.append({'team_id': team_id,
+                            'run_list': list_of_services})
+
+    result['run_scripts'] = run_scripts
+
+    
     return json.dumps(result)
 
 
@@ -63,10 +85,10 @@ def get_game_info():
 
     c = mysql.get_db().cursor()
     result = {}
-    c.execute("""select id as team_id, team_name from teams""");
+    c.execute("""select id as team_id, team_name, ip_range from teams""");
     result['teams'] = c.fetchall()
 
-    c.execute("""select id as service_id, name as service_name, flag_id_description, description from services""");
+    c.execute("""select id as service_id, name as service_name, port, flag_id_description, description from services""");
     result['services'] = c.fetchall()
 
     return json.dumps(result)
@@ -157,9 +179,8 @@ def set_state(teamid, serviceid):
 
     return json.dumps(result)
 
-#@app.route("/allscripts")
+@app.route("/allscripts")
 def all_scripts():
-    # TODO: Remove?
     secret = request.args.get('secret')
 
     if secret != "YOUKNOWSOMETHINGYOUSUCK":
@@ -172,9 +193,8 @@ def all_scripts():
     result = {'scripts' : c.fetchall()}
     return json.dumps(result)
 
-#@app.route("/script/<scriptid>")
+@app.route("/script/<scriptid>")
 def get_script(scriptid):
-    # TODO: Remove?
     secret = request.args.get('secret')
 
     if secret != "YOUKNOWSOMETHINGYOUSUCK":
@@ -196,9 +216,8 @@ def get_script(scriptid):
 
     return json.dumps(script)
 
-#@app.route("/ranscript/<scriptid>")
+@app.route("/ranscript/<scriptid>")
 def ran_script(scriptid):
-    # TODO: Fix this to store exploit run info
     secret = request.args.get('secret')
 
     if secret != "YOUKNOWSOMETHINGYOUSUCK":
