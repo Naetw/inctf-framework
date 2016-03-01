@@ -48,7 +48,7 @@ def current_state():
     result['game_id'] = c.fetchone()['id']
 
     
-    c.execute("""select services.id as service_id, services.name as service_name, services.port as port from services;""")
+    c.execute("""select services.id as service_id, services.name as service_name, services.internal_port as int_port from services;""")
     result['services'] = c.fetchall()
     
     # need to decide what scripts to run
