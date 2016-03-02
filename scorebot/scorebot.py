@@ -92,6 +92,27 @@ class DBClient:
         except Exception as e:
             self.log.error(ERROR_DB[1]+' get_state(): Exception: '+str(e)+'. Response: '+r)
             
+    def get_teams(self):
+        try:
+            r = None
+            url = 'http://%s/teams?secret=%s' % (self.host, self.pwd)
+            r = urllib.urlopen(url).read()
+            ret = json.loads(r)
+            self.log.info('Teams returned: %s' % (str(ret)))
+            return ret
+        except Exception as e:
+            self.log.error(ERROR_DB[1] + ' get_teams(): Exception: ' + str(e) + '. Response: ' + r)
+
+    def get_services(self):
+        try:
+            r = None
+            url = 'http://%s/services?secret=%s' % (self.host, self.pwd)
+            r = urllib.urlopen(url).read()
+            ret = json.loads(r)
+            self.log.info('Services returned: %s' % (str(ret)))
+            return ret
+        except Exception as e:
+             self.log.error(ERROR_DB[1] + ' get_services(): Exception: ' + str(e) + '. Response: ' + r)
 
     def get_flag(self,team_id,service_id):
         if TEST:
@@ -407,6 +428,7 @@ class Scheduler:
         self.state_id = None
         self.state_changed = False
         self.services = {}
+        self.service_locations = {}
         self.scripts = {}
         self.run_list = {}
         self.teams = {}
@@ -422,8 +444,8 @@ class Scheduler:
             f= self.log.addHandler(logging.StreamHandler().setLevel(logging.INFO))
 
         
-        self.teams =  self.get_team_list(team_list_path)
-
+        self.teams = self.get_team_list()
+        self.services = self.get_services()
 
         #seed
         random.seed(time.time())
@@ -435,16 +457,24 @@ class Scheduler:
         self.status['state_id']='EXIT'
         self.update_status()
 
-    def get_team_list(self,path):
+    def get_team_list(self):
         #TODO
         if TEST:
             return {20:{"team_id":20,"ip":"127.0.0.20"},
                     14:{"team_id":14,"ip":"127.0.0.14"},}
 
-        tl = json.load(open(path,'r'))
+        team_list = self.db.get_teams()
         ret = {}
-        for t in tl:
-            ret[t["team_id"]]=t
+        for team in team_list:
+            ret[team["team_id"]] = team
+
+        return ret
+
+    def get_services(self):
+        service_list = self.db.get_services()
+        ret = {}
+        for service in service_list:
+            ret[service['service_id']] = service
 
         return ret
 
@@ -461,13 +491,19 @@ class Scheduler:
             if state is None:
                 state = self.db.get_state()
 
+            for team_id in self.teams:
+                self.service_locations[team_id] = {}
+                for service_id in self.services:
+                    self.service_locations[team_id][service_id] = None
+
+            for location in state['locations']:
+                assert(location['service_id']) in self.services
+                assert(location['team_id'] in self.teams)
+                self.service_locations[location['team_id']][location['service_id']] = (location['host_ip'], location['host_port'])
 
             self.state_expire = state['state_expire']
             if self.state_expire <STATE_EXPIRE_MIN:
                 self.state_expire = STATE_EXPIRE_MIN
-
-            for s in state['services']:
-                self.services[int(s['service_id'])]=s
 
             for s in state['scripts']:
                 self.scripts[int(s['script_id'])]=s
@@ -599,7 +635,6 @@ class Scheduler:
         return zip(run_list,d)
 
     def runscripts(self,team):
-        ip = team['ip']
         if team['team_id'] not in self.run_list:
             self.log.info('No script to run for %s.'%(str(team)))
             return
@@ -629,7 +664,9 @@ class Scheduler:
                 if p is None:
                     continue
                 s = self.scripts[sid]
-                self.runscript(slock,team['team_id'],sid,s['service_id'],SCRIPT_TIMEOUT,s['type'],p,ip,self.services[s['service_id']]['port'],delay)
+                ip = self.service_locations[team['team_id']][s['service_id']][0]
+                port = self.service_locations[team['team_id']][s['service_id']][1]
+                self.runscript(slock,team['team_id'],sid,s['service_id'],SCRIPT_TIMEOUT,s['type'],p,ip,port,delay)
 
     def runscript(self,slock,team_id,script_id,service_id,timeout,script_type,
                  script_path,ip,port,delay):
@@ -716,16 +753,17 @@ class Scheduler:
         #self.process_list = []
 
     def setuprun(self,team):
-        ip = team['ip']
         for sid,s in self.scripts.iteritems():
+            ip = self.service_locations[team['team_id']][s['service_id']][0]
+            port = self.service_locations[team['team_id']][s['service_id']][1]
             if s['type']=='setflag':
                 p = self.update_script(sid)
-                self.runscript(self.status,team['team_id'],sid,s['service_id'],SCRIPT_TIMEOUT,s['type'],p,ip,self.services[s['service_id']]['port'])
+                self.runscript(self.status,team['team_id'],sid,s['service_id'],SCRIPT_TIMEOUT,s['type'],p,ip,port)
         time.sleep(SETUP_SLEEP)
         for sid,s in self.scripts.iteritems():
             if s['type']=='getflag':
                 p = self.update_script(sid)
-                self.runscript(self.status,team['team_id'],sid,s['service_id'],SCRIPT_TIMEOUT,s['type'],p,ip,self.services[s['service_id']]['port'])
+                self.runscript(self.status,team['team_id'],sid,s['service_id'],SCRIPT_TIMEOUT,s['type'],p,ip,port)
         time.sleep(SETUP_SLEEP)
             
 

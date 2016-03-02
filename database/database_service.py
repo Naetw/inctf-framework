@@ -42,15 +42,12 @@ def current_state():
     result['state_id'] = current_tick
     result['state_expire'] = seconds_to_next_tick
 
-
+    c.execute("""select team_id, service_id, host_ip, host_port from services_locations;""")
+    result['locations'] = c.fetchall()
     
     c.execute("""select id from game limit 1""")
     result['game_id'] = c.fetchone()['id']
 
-    
-    c.execute("""select services.id as service_id, services.name as service_name, services.internal_port as int_port from services;""")
-    result['services'] = c.fetchall()
-    
     # need to decide what scripts to run
 
     c.execute("""select scripts.id as script_id, scripts.is_bundle as is_bundle, scripts.name as script_name, scripts.type as type, scripts.service_id as service_id from scripts""")
@@ -422,7 +419,30 @@ def scores():
 
     return json.dumps(to_return)
 
+@app.route("/teams")
+def teams():
+    secret = request.args.get('secret')
 
+    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+        abort(401)
+
+    c = mysql.get_db().cursor()
+    c.execute("""select id as team_id, team_name, services_ports_low as port_low, services_ports_high as port_high from teams;""")
+    teams = c.fetchall()
+    return json.dumps(teams)
+
+@app.route("/services")
+def services():
+    secret = request.args.get('secret')
+
+    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+        abort(401)
+
+    c = mysql.get_db().cursor()
+    c.execute("""select id as service_id, name as service_name, internal_port as
+              int_port, offset_external_port as off_ext_port from services;""")
+    services = c.fetchall()
+    return json.dumps(services)
 
 def get_uptime_for_team(team_id, c):
 
