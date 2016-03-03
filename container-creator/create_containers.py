@@ -12,9 +12,12 @@ import sys
 
 def create_links_to_debs_and_image(services, services_dir, image, dst_dir):
     for service in services:
-        os.link(os.path.join(services_dir, service + ".deb"), dst_dir)
+        src_file = os.path.join(services_dir, service + ".deb")
+        dst_file = os.path.join(dst_dir, service, service + ".deb")
+        os.link(src_file, dst_file)
 
-    os.link(image, dst_dir)
+    image_dst_file = os.path.join(dst_dir, os.path.basename(image))
+    os.link(image, image_dst_file)
     return
 
 
@@ -64,9 +67,9 @@ def main():
     config_file = args.config
     image_file = args.image
     services_dir = args.services_location
-    output_dir = os.path.realpath(args.output)
+    output_dir = os.path.realpath(args.output_dir)
     if os.path.exists(output_dir):
-        print "%s exists. Deleting and recreating directory."
+        print "%s exists. Deleting and recreating directory." % (output_dir)
         shutil.rmtree(output_dir)
 
     config_file_fh = open(config_file)
@@ -79,7 +82,9 @@ def main():
         print ("Error when reading config from %s: " + e.message) % (config_file)
         sys.exit(1)
 
-    services = configuration["services"]
+    services = {}
+    for service in configuration["services"]:
+        services[service["service_name"]] = service
 
     for service in services:
         if not os.path.isfile(os.path.join(services_dir, service + ".deb")):
