@@ -16,6 +16,8 @@ mysql.init_app(app)
 FLAG_POSSIBILITIES = string.ascii_uppercase + string.digits + string.ascii_lowercase
 POINTS_PER_CAP = 100
 
+DB_SECRET = "YOUKNOWSOMETHINGYOUSUCK"
+
 
 @app.route("/")
 def hello():
@@ -26,7 +28,7 @@ def hello():
 def current_state():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -77,7 +79,7 @@ def current_state():
 def get_game_info():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -96,7 +98,7 @@ def get_game_info():
 def get_services_state():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -113,7 +115,7 @@ def get_services_state_tick(tick_id):
     # TODO: FIX ME
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -162,7 +164,7 @@ def get_services_state_by_tick(tick_id, c):
 def set_state(teamid, serviceid):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     status = int(request.args.get('status'))
@@ -186,7 +188,7 @@ def set_state(teamid, serviceid):
 def all_scripts():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -202,7 +204,7 @@ def all_scripts():
 def get_script(scriptid):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -224,7 +226,7 @@ def get_script(scriptid):
 def ran_script(scriptid):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     defending_team = request.args.get('team_id')
@@ -255,7 +257,7 @@ def ran_script(scriptid):
 def create_new_flag(teamid, serviceid):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -277,7 +279,7 @@ def create_new_flag(teamid, serviceid):
 def set_cookie_and_flag_id(flag):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     cookie = request.args.get('cookie')
@@ -297,7 +299,7 @@ def set_cookie_and_flag_id(flag):
 def get_latest_flag_and_cookie(teamid, serviceid):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -313,7 +315,7 @@ def get_latest_flag_and_cookie(teamid, serviceid):
 def get_latest_flag_ids():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -345,7 +347,7 @@ def get_latest_flag_ids():
 def submit_flag(teamid, flag):
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -410,7 +412,7 @@ def submit_flag(teamid, flag):
 def scores():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -435,7 +437,7 @@ def scores():
 def team_list():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
@@ -449,7 +451,7 @@ def team_list():
 def services_list():
     secret = request.args.get('secret')
 
-    if secret != "YOUKNOWSOMETHINGYOUSUCK":
+    if secret != DB_SECRET:
         abort(401)
 
     c = mysql.get_db().cursor()
