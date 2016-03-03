@@ -15,9 +15,9 @@ def create_links_to_debs_and_image(services, services_dir, image, dst_dir):
         src_file = os.path.join(services_dir, service + ".deb")
         dst_file = os.path.join(dst_dir, service, service + ".deb")
         os.link(src_file, dst_file)
+        image_dst_file = os.path.join(dst_dir, service, os.path.basename(image))
+        os.link(image, image_dst_file)
 
-    image_dst_file = os.path.join(dst_dir, os.path.basename(image))
-    os.link(image, image_dst_file)
     return
 
 
