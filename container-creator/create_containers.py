@@ -10,15 +10,11 @@ import shutil
 import sys
 
 
-def copy_debs_and_image(services, directory, image):
-    debs_tmp_dir = "tmp"
-    if not os.path.isdir(debs_tmp_dir):
-        os.mkdir(debs_tmp_dir)
-
+def create_links_to_debs_and_image(services, services_dir, image, dst_dir):
     for service in services:
-        shutil.copy2(os.path.join(directory, service), debs_tmp_dir)
+        os.link(os.path.join(services_dir, service + ".deb"), dst_dir)
 
-    shutil.copy2(image, os.getcwd())
+    os.link(image, dst_dir)
     return
 
 
@@ -93,7 +89,7 @@ def main():
             sys.exit(1)
 
     create_output_dirs_for_services(services, output_dir)
-    copy_debs_and_image(services, services_dir, image_file)
+    create_links_to_debs_and_image(services, services_dir, image_file, output_dir)
     return
 
 
