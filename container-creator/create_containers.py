@@ -67,9 +67,7 @@ def main():
     config_file = args.config
     image_file = args.image
     services_dir = args.services_location
-    output_dir = args.output
-    if not os.path.isabs(output_dir):
-        output_dir = os.path.join(os.getcwd(), output_dir)
+    output_dir = os.path.realpath(args.output)
 
     config_file_fh = open(config_file)
     contents = config_file_fh.read()
