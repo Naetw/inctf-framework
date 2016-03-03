@@ -34,6 +34,8 @@ def create_argument_parser():
                         "such as name, team names and names of services")
     parser.add_argument("-od", "--output-dir", type=str, default="output",
                         help="Directory to output Dockerfile and other files")
+    parser.add_argument("--apt-proxy-host", type=str, help="IP address of APT proxy")
+    parser.add_argument("--apt-proxy-port", type=int, help="Port used by APT proxy")
     return parser
 
 
@@ -46,7 +48,7 @@ def create_output_dirs_for_services(services, destination):
 
 
 def generate_dockerfiles(services, image_name, output_dir, dockerfile_template,
-                         commands_template):
+                         commands_template, proxy_host=None, proxy_port=None):
     data = {}
     data['image'] = image_name
     commands_file = "commands.sh"
@@ -71,6 +73,15 @@ def generate_dockerfiles(services, image_name, output_dir, dockerfile_template,
             data["post_install"] = os.linesep.join(services[service]["post_install"])
         else:
             data["post_install"] = os.linesep
+
+        if proxy_host:
+            activate_proxy_cmd = "echo 'Acquire::http { Proxy \"http://" + \
+                proxy_host + ":" + str(proxy_port) + "\"; };' > /etc/apt/apt.conf.d/02proxy"
+            deactivate_proxy_cmd = "truncate --size 0 /etc/apt/apt.conf.d/02proxy"
+            data["pre_install"] = data["pre_install"] + os.linesep + \
+                activate_proxy_cmd
+            data["post_install"] = data["post_install"] + os.linesep + \
+                deactivate_proxy_cmd
 
         dockerfile_fh = open(dockerfile, 'w')
         dockerfile_fh.write(dockerfile_template.format(**data))
@@ -97,6 +108,14 @@ def test_arguments(args):
 
     if not os.path.isdir(args.services_location):
         print "%d is not a valid directory. Exiting!" % (args.services_location)
+        sys.exit(1)
+
+    if args.apt_proxy_host is None and args.apt_proxy_port is not None:
+        print "APT proxy port specified but no host specified. Exiting!"
+        sys.exit(1)
+
+    if args.apt_proxy_port is None and args.apt_proxy_host is not None:
+        print "APT proxy host specified but no port specified. Exiting!"
         sys.exit(1)
 
     return
@@ -128,6 +147,8 @@ def main():
     image_file = args.image
     services_dir = args.services_location
     output_dir = os.path.realpath(args.output_dir)
+    apt_proxy_host = args.apt_proxy_host
+    apt_proxy_port = args.apt_proxy_port
     if os.path.exists(output_dir):
         print "%s exists. Deleting and recreating directory." % (output_dir)
         shutil.rmtree(output_dir)
@@ -168,7 +189,8 @@ def main():
     create_output_dirs_for_services(services, output_dir)
     create_links_to_debs_and_image(services, services_dir, image_file, output_dir)
     generate_dockerfiles(services, os.path.basename(image_file),
-                         output_dir, dockerfile_template, commands_template)
+                         output_dir, dockerfile_template, commands_template,
+                         apt_proxy_host, apt_proxy_port)
     return
 
 
