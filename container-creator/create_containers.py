@@ -44,6 +44,28 @@ def create_output_dirs_for_services(services, destination):
     return
 
 
+def generate_dockerfiles(services, image_name, output_dir, dockerfile_template):
+    data = {}
+    data['image'] = image_name
+    for service in services:
+        print "Generating Dockerfile for %s..." % (service),
+        os.chdir(os.path.join(output_dir, service))
+        data['deb_file'] = service + ".deb"
+        for key in ["user", "workdir"]:
+            data[key] = services[service][key]
+
+        data["cmd"] = [services[service]["command"]]
+        if "args" in services[service]:
+            data["cmd"].extend(services[service]["args"])
+
+        dockerfile_fh = open("Dockerfile", 'w')
+        dockerfile_fh.write(dockerfile_template.format(**data))
+        dockerfile_fh.close()
+        print "done"
+
+    return
+
+
 def test_arguments(args):
     if not os.path.isfile(args.config):
         print "Cannot find file %s. Exiting!" % (args.config)
@@ -90,6 +112,14 @@ def main():
         print "%s exists. Deleting and recreating directory." % (output_dir)
         shutil.rmtree(output_dir)
 
+    dockerfile_template_file = os.path.join(os.getcwd(), "Dockerfile.template")
+    if not os.path.isfile(dockerfile_template_file):
+        print "Could not find %s. Exiting!" % (dockerfile_template_file)
+        sys.exit(1)
+
+    template_fh = open(dockerfile_template_file)
+    dockerfile_template = template_fh.read()
+    template_fh.close()
     config_file_fh = open(config_file)
     contents = config_file_fh.read()
     config_file_fh.close()
@@ -107,6 +137,8 @@ def main():
     validate_services_config(services, services_dir)
     create_output_dirs_for_services(services, output_dir)
     create_links_to_debs_and_image(services, services_dir, image_file, output_dir)
+    generate_dockerfiles(services, os.path.basename(image_file),
+                         output_dir, dockerfile_template)
     return
 
 
