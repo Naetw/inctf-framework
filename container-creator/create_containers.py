@@ -70,8 +70,8 @@ def validate_services_config(services, services_dir):
     for service in services:
         keys = services[service].keys()
         for necessary_key in necessary_keys:
-            if necessary_keys not in keys:
-                print "%s not provides for service %s in config. Exiting!" % \
+            if necessary_key not in keys:
+                print "%s not provided for service %s in config. Exiting!" % \
                     (necessary_key, service)
                 sys.exit(1)
 
