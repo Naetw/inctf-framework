@@ -60,6 +60,24 @@ def test_arguments(args):
     return
 
 
+def validate_services_config(services, services_dir):
+    for service in services:
+        if not os.path.isfile(os.path.join(services_dir, service + ".deb")):
+            print "Could not find %s.deb in %s. Exiting!" % (service, services_dir)
+            sys.exit(1)
+
+    necessary_keys = ["user", "workdir", "command"]
+    for service in services:
+        keys = services[service].keys()
+        for necessary_key in necessary_keys:
+            if necessary_keys not in keys:
+                print "%s not provides for service %s in config. Exiting!" % \
+                    (necessary_key, service)
+                sys.exit(1)
+
+    return
+
+
 def main():
     parser = create_argument_parser()
     args = parser.parse_args()
@@ -86,11 +104,7 @@ def main():
     for service in configuration["services"]:
         services[service["service_name"]] = service
 
-    for service in services:
-        if not os.path.isfile(os.path.join(services_dir, service + ".deb")):
-            print "Could not find %s.deb in %s. Exiting!" % (service, services_dir)
-            sys.exit(1)
-
+    validate_services_config(services, services_dir)
     create_output_dirs_for_services(services, output_dir)
     create_links_to_debs_and_image(services, services_dir, image_file, output_dir)
     return
