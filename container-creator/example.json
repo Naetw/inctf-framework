@@ -1,0 +1,30 @@
+{
+    "num_services": 2,
+    "name": "Test CTF",
+    "services": [
+        {
+            "service_name": "poipoi", "user": "poipoi",
+            "workdir": "/var/ictf/services/poipoi",
+            "command": "/ictf/services/poipoi/poipoi",
+            "args": ["3335"],
+            "pre_install": ["adduser --system --no-create-home --disabled-password --disabled-login ictf"]
+        },
+        {
+            "service_name": "driller", "user": "driller",
+            "workdir": "/var/ictf/services/driller",
+            "command": "/ictf/services/driller/driller",
+            "pre_install": ["adduser --system --no-create-home --disabled-password --disabled-login ictf"]
+        }
+    ],
+    "sudo": true,
+    "teams": [
+        {
+            "password": "team1",
+            "name": "team1"
+        },
+        {
+            "password": "team2",
+            "name": "team2"
+        }
+    ]
+}

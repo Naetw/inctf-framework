@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import shutil
+import stat
 import sys
 
 
@@ -44,9 +45,12 @@ def create_output_dirs_for_services(services, destination):
     return
 
 
-def generate_dockerfiles(services, image_name, output_dir, dockerfile_template):
+def generate_dockerfiles(services, image_name, output_dir, dockerfile_template,
+                         commands_template):
     data = {}
     data['image'] = image_name
+    commands_file = "commands.sh"
+    dockerfile = "Dockerfile"
     for service in services:
         print "Generating Dockerfile for %s..." % (service),
         os.chdir(os.path.join(output_dir, service))
@@ -58,9 +62,25 @@ def generate_dockerfiles(services, image_name, output_dir, dockerfile_template):
         if "args" in services[service]:
             data["cmd"].extend(services[service]["args"])
 
-        dockerfile_fh = open("Dockerfile", 'w')
+        if "pre_install" in services[service]:
+            data["pre_install"] = os.linesep.join(services[service]["pre_install"])
+        else:
+            data["pre_install"] = os.linesep
+
+        if "post_install" in services[service]:
+            data["post_install"] = os.linesep.join(services[service]["post_install"])
+        else:
+            data["post_install"] = os.linesep
+
+        dockerfile_fh = open(dockerfile, 'w')
         dockerfile_fh.write(dockerfile_template.format(**data))
         dockerfile_fh.close()
+
+        commands_file_fh = open(commands_file, 'w')
+        commands_file_fh.write(commands_template.format(**data))
+        commands_file_fh.close()
+        os.chmod(commands_file, os.stat(commands_file).st_mode | stat.S_IEXEC)
+
         print "done"
 
     return
@@ -120,6 +140,16 @@ def main():
     template_fh = open(dockerfile_template_file)
     dockerfile_template = template_fh.read()
     template_fh.close()
+
+    commands_template_file = os.path.join(os.getcwd(), "commands.sh.template")
+    if not os.path.isfile(commands_template_file):
+        print "Could not find %s. Exiting!" % (commands_template_file)
+        sys.exit(1)
+
+    template_fh = open(commands_template_file)
+    commands_template = template_fh.read()
+    template_fh.close()
+
     config_file_fh = open(config_file)
     contents = config_file_fh.read()
     config_file_fh.close()
@@ -138,7 +168,7 @@ def main():
     create_output_dirs_for_services(services, output_dir)
     create_links_to_debs_and_image(services, services_dir, image_file, output_dir)
     generate_dockerfiles(services, os.path.basename(image_file),
-                         output_dir, dockerfile_template)
+                         output_dir, dockerfile_template, commands_template)
     return
 
 
