@@ -32,6 +32,8 @@ def create_argument_parser():
     parser.add_argument("-c", "--config", type=str, required=True,
                         help="Configuration file containing info about contest " +
                         "such as name, team names and names of services")
+    parser.add_argument("-od", "--output-dir", type=str, default="output",
+                        help="Directory to output Dockerfile and other files")
     return parser
 
 
@@ -58,6 +60,11 @@ def main():
     config_file = args.config
     image_file = args.image
     services_dir = args.services_location
+    output_dir = args.output
+    if os.path.isdir(output_dir):
+        shutil.rmtree(output_dir)
+
+    os.mkdir(output_dir)
 
     config_file_fh = open(config_file)
     contents = config_file_fh.read()
