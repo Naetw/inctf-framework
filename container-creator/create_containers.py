@@ -34,9 +34,6 @@ def create_argument_parser():
 
 
 def create_output_dirs_for_services(services, destination):
-    if os.path.isdir(destination):
-        shutil.rmtree(destination)
-
     os.mkdir(destination)
     for service in services:
         os.mkdir(os.path.join(destination, service))
@@ -68,6 +65,9 @@ def main():
     image_file = args.image
     services_dir = args.services_location
     output_dir = os.path.realpath(args.output)
+    if os.path.exists(output_dir):
+        print "%s exists. Deleting and recreating directory."
+        shutil.rmtree(output_dir)
 
     config_file_fh = open(config_file)
     contents = config_file_fh.read()
