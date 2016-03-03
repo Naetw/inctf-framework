@@ -37,6 +37,17 @@ def create_argument_parser():
     return parser
 
 
+def create_output_dirs_for_services(services, destination):
+    if os.path.isdir(destination):
+        shutil.rmtree(destination)
+
+    os.mkdir(destination)
+    for service in services:
+        os.mkdir(os.path.join(destination, service))
+
+    return
+
+
 def test_arguments(args):
     if not os.path.isfile(args.config):
         print "Cannot find file %s. Exiting!" % (args.config)
@@ -64,11 +75,6 @@ def main():
     if not os.path.isabs(output_dir):
         output_dir = os.path.join(os.getcwd(), output_dir)
 
-    if os.path.isdir(output_dir):
-        shutil.rmtree(output_dir)
-
-    os.mkdir(output_dir)
-
     config_file_fh = open(config_file)
     contents = config_file_fh.read()
     config_file_fh.close()
@@ -86,6 +92,7 @@ def main():
             print "Could not find %s.deb in %s. Exiting!" % (service, services_dir)
             sys.exit(1)
 
+    create_output_dirs_for_services(services, output_dir)
     copy_debs_and_image(services, services_dir, image_file)
     return
 
