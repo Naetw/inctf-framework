@@ -6,11 +6,15 @@
     "teams": [
         {
             "password": "team1",
-            "name": "team1"
+            "name": "team1",
+            "namespace": "namespace_team1"
         },
         {
             "password": "team2",
-            "name": "team2"
+            "name": "team2",
+            "namespace": "namespace_team2"
         }
-    ]
+    ],
+    "containers_host": "127.0.0.1",
+    "containers_ports_start" : 10000
 }
