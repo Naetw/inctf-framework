@@ -204,12 +204,7 @@ def test_arguments(args):
 
 
 def validate_services_config(services, services_dir):
-    for service in services:
-        if not os.path.isfile(os.path.join(services_dir, service["name"] + ".deb")):
-            print "Could not find %s.deb in %s. Exiting!" % (service["name"], services_dir)
-            sys.exit(1)
-
-    necessary_keys = ["user", "workdir", "command"]
+    necessary_keys = ["user", "workdir", "command", "port", "authors", "name"]
     for service in services:
         keys = service.keys()
         for necessary_key in necessary_keys:
@@ -217,6 +212,10 @@ def validate_services_config(services, services_dir):
                 print "%s not provided for service %s in config. Exiting!" % \
                     (necessary_key, service["name"])
                 sys.exit(1)
+
+        if not os.path.isfile(os.path.join(services_dir, service["name"] + ".deb")):
+            print "Could not find %s.deb in %s. Exiting!" % (service["name"], services_dir)
+            sys.exit(1)
 
     return
 
