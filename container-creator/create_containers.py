@@ -59,7 +59,6 @@ def create_argument_parser():
 
 
 def create_output_dirs_for_services(services, destination):
-    os.mkdir(destination)
     for service in services:
         os.mkdir(os.path.join(destination, service))
 
@@ -165,12 +164,8 @@ def main():
     config_file = args.config
     image_file = args.image
     services_dir = args.services_location
-    output_dir = os.path.realpath(args.output_dir)
     apt_proxy_host = args.apt_proxy_host
     apt_proxy_port = args.apt_proxy_port
-    if os.path.exists(output_dir):
-        print "%s exists. Deleting and recreating directory." % (output_dir)
-        shutil.rmtree(output_dir)
 
     dockerfile_template_file = os.path.join(os.getcwd(), "Dockerfile.template")
     if not os.path.isfile(dockerfile_template_file):
@@ -199,6 +194,14 @@ def main():
     except ValueError, e:
         print ("Error when reading config from %s: " + e.message) % (config_file)
         sys.exit(1)
+
+    game_name = configuration["name"]
+    output_dir = os.path.join(os.path.realpath(args.output_dir), game_name)
+    if os.path.exists(output_dir):
+        print "%s exists. Deleting directory." % (output_dir)
+        shutil.rmtree(output_dir)
+
+    os.makedirs(output_dir)
 
     services = {}
     for service in configuration["services"]:
