@@ -45,9 +45,11 @@ CREATE TABLE `services` (
   `authors` VARCHAR(2048) NOT NULL,
   `flag_id_description` VARCHAR(2048) NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `offset_external_port` INT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX (`id` ASC),
-  UNIQUE INDEX `internal_port_UNIQUE` (`internal_port` ASC));
+  UNIQUE INDEX `internal_port_UNIQUE` (`internal_port` ASC),
+  UNIQUE INDEX `offset_external_port_UNIQUE` (`offset_external_port` ASC));
 
 
 -- -----------------------------------------------------
