@@ -14,28 +14,28 @@ import sys
 
 def build_images(services, container_config_dir):
     for service in services:
-        print "Building container image for service %s" % (service)
-        command = ["docker", "build", "-t", service,
-                   os.path.join(container_config_dir, service)]
+        print "Building container image for service %s" % (service["name"])
+        command = ["docker", "build", "-t", service["name"],
+                   os.path.join(container_config_dir, service["name"])]
         process = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
         if process.returncode != 0:
-            print "Something went wrong when building image of %s" % (service)
+            print "Something went wrong when building image of %s" % (service["name"])
             print "Stdout: %s", stdout
             print "Stderr: %s", stderr
         else:
-            print "Built image for service %s with tag %s" % (service, service)
+            print "Built image for service %s with tag %s" % (service["name"], service["name"])
 
     return
 
 
 def create_links_to_debs_and_image(services, services_dir, image, dst_dir):
     for service in services:
-        src_file = os.path.join(services_dir, service + ".deb")
-        dst_file = os.path.join(dst_dir, service, service + ".deb")
+        src_file = os.path.join(services_dir, service["name"] + ".deb")
+        dst_file = os.path.join(dst_dir, service["name"], service["name"] + ".deb")
         os.link(src_file, dst_file)
-        image_dst_file = os.path.join(dst_dir, service, os.path.basename(image))
+        image_dst_file = os.path.join(dst_dir, service["name"], os.path.basename(image))
         os.link(image, image_dst_file)
 
     return
@@ -60,7 +60,7 @@ def create_argument_parser():
 
 def create_output_dirs_for_services(services, destination):
     for service in services:
-        os.mkdir(os.path.join(destination, service))
+        os.mkdir(os.path.join(destination, service["name"]))
 
     return
 
@@ -72,23 +72,23 @@ def generate_dockerfiles(services, image_name, output_dir, dockerfile_template,
     commands_file = "commands.sh"
     dockerfile = "Dockerfile"
     for service in services:
-        print "Generating Dockerfile for %s..." % (service),
-        os.chdir(os.path.join(output_dir, service))
-        data['deb_file'] = service + ".deb"
+        print "Generating Dockerfile for %s..." % (service["name"]),
+        os.chdir(os.path.join(output_dir, service["name"]))
+        data['deb_file'] = service["name"] + ".deb"
         for key in ["user", "workdir"]:
-            data[key] = services[service][key]
+            data[key] = service[key]
 
-        data["cmd"] = [services[service]["command"]]
-        if "args" in services[service]:
-            data["cmd"].extend(services[service]["args"])
+        data["cmd"] = [service["command"]]
+        if "args" in service:
+            data["cmd"].extend(service["args"])
 
-        if "pre_install" in services[service]:
-            data["pre_install"] = os.linesep.join(services[service]["pre_install"])
+        if "pre_install" in service:
+            data["pre_install"] = os.linesep.join(service["pre_install"])
         else:
             data["pre_install"] = os.linesep
 
-        if "post_install" in services[service]:
-            data["post_install"] = os.linesep.join(services[service]["post_install"])
+        if "post_install" in service:
+            data["post_install"] = os.linesep.join(service["post_install"])
         else:
             data["post_install"] = os.linesep
 
@@ -141,17 +141,17 @@ def test_arguments(args):
 
 def validate_services_config(services, services_dir):
     for service in services:
-        if not os.path.isfile(os.path.join(services_dir, service + ".deb")):
-            print "Could not find %s.deb in %s. Exiting!" % (service, services_dir)
+        if not os.path.isfile(os.path.join(services_dir, service["name"] + ".deb")):
+            print "Could not find %s.deb in %s. Exiting!" % (service["name"], services_dir)
             sys.exit(1)
 
     necessary_keys = ["user", "workdir", "command"]
     for service in services:
-        keys = services[service].keys()
+        keys = service.keys()
         for necessary_key in necessary_keys:
             if necessary_key not in keys:
                 print "%s not provided for service %s in config. Exiting!" % \
-                    (necessary_key, service)
+                    (necessary_key, service["name"])
                 sys.exit(1)
 
     return
@@ -203,9 +203,7 @@ def main():
 
     os.makedirs(output_dir)
 
-    services = {}
-    for service in configuration["services"]:
-        services[service["service_name"]] = service
+    services = configuration["services"]
 
     validate_services_config(services, services_dir)
     create_output_dirs_for_services(services, output_dir)
