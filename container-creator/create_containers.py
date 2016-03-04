@@ -203,7 +203,11 @@ def main():
 
     os.makedirs(output_dir)
 
-    services = configuration["services"]
+    services = []
+    for service_name in configuration["services"]:
+        service_info_fh = open(os.path.join(services_dir, service_name, "info.json"))
+        services.append(json.load(service_info_fh))
+        service_info_fh.close()
 
     validate_services_config(services, services_dir)
     create_output_dirs_for_services(services, output_dir)
