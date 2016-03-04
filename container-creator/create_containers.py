@@ -8,7 +8,26 @@ import json
 import os
 import shutil
 import stat
+import subprocess
 import sys
+
+
+def build_images(services, container_config_dir):
+    for service in services:
+        print "Building container image for service %s" % (service)
+        command = ["docker", "build", "-t", service,
+                   os.path.join(container_config_dir, service)]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode != 0:
+            print "Something went wrong when building image of %s" % (service)
+            print "Stdout: %s", stdout
+            print "Stderr: %s", stderr
+        else:
+            print "Built image for service %s with tag %s" % (service, service)
+
+    return
 
 
 def create_links_to_debs_and_image(services, services_dir, image, dst_dir):
@@ -191,6 +210,7 @@ def main():
     generate_dockerfiles(services, os.path.basename(image_file),
                          output_dir, dockerfile_template, commands_template,
                          apt_proxy_host, apt_proxy_port)
+    build_images(services, output_dir)
     return
 
 
