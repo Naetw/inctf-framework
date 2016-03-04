@@ -115,6 +115,70 @@ def generate_dockerfiles(services, image_name, output_dir, dockerfile_template,
     return
 
 
+def generate_service_containers_config(services, teams):
+    config = []
+    for service in services:
+        for team in teams:
+            team_configuration = {}
+            team_configuration["name"] = "service_" + service["name"]
+            team_configuration["namespace"] = team["namespace"]
+            team_configuration["team"] = team["name"]
+            team_configuration["service"] = service["name"]
+            team_configuration["type"] = "SERVICE"
+            config.append(team_configuration)
+
+    return config
+
+
+def generate_services_config(services):
+    configs = []
+    required_info = ["name", "internal_port", "description", "authors",
+                     "flag_id_description"]
+    custom_key_mappings = {}
+    custom_key_mappings["internal_port"] = "port"
+    custom_key_mappings["description"] = "service_description"
+    for service in services:
+        service_config = {}
+        for info in required_info:
+            if info in custom_key_mappings:
+                service_config[info] = service[custom_key_mappings[info]]
+            else:
+                service_config[info] = service[info]
+
+        configs.append(service_config)
+
+    return configs
+
+
+def generate_teams_config(teams, services_count, host, start_port):
+    configs = []
+    next_start_port = start_port
+    for team in teams:
+        team_config = {}
+        team_config["name"] = team["name"]
+        team_config["services_ports_low"] = next_start_port
+        next_start_port = next_start_port + services_count
+        team_config["services_ports_high"] = next_start_port - 1
+        configs.append(team_config)
+
+    return configs
+
+
+def generate_initial_db_config(services, teams, containers_host,
+                               containers_ports_start, db_dir):
+    db_config_file = os.path.join(db_dir, "initial_db_state.json")
+
+    db_config = {}
+    db_config["containers"] = generate_service_containers_config(services, teams)
+    db_config["teams"] = generate_teams_config(teams, len(services), containers_host,
+                                               containers_ports_start)
+    db_config["services"] = generate_services_config(services)
+    db_config_fh = open(db_config_file, 'w')
+    json.dump(db_config, db_config_fh, indent=4, separators=(',', ': '))
+    db_config_fh.close()
+    return
+
+
 def test_arguments(args):
     if not os.path.isfile(args.config):
         print "Cannot find file %s. Exiting!" % (args.config)
@@ -203,6 +267,9 @@ def main():
 
     os.makedirs(output_dir)
 
+    teams = configuration["teams"]
+    container_host = configuration["containers_host"]
+    containers_ports_start = configuration["containers_ports_start"]
     services = []
     for service_name in configuration["services"]:
         service_info_fh = open(os.path.join(services_dir, service_name, "info.json"))
@@ -216,6 +283,8 @@ def main():
                          output_dir, dockerfile_template, commands_template,
                          apt_proxy_host, apt_proxy_port)
     build_images(services, output_dir)
+    generate_initial_db_config(services, teams, container_host,
+                               containers_ports_start, output_dir)
     return
 
 
