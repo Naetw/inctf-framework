@@ -333,7 +333,7 @@ CREATE TABLE `containers` (
   `team_id` INT NOT NULL,
   `service_id` INT NOT NULL,
   `type` ENUM('SERVICE', 'EXPLOIT') NOT NULL,
-  `update_required` TINYINT(1) NOT NULL,
+  `update_required` TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `fk_containers_team_id_idx` (`team_id` ASC),
   INDEX `fk_containers_service_id_idx` (`service_id` ASC),
