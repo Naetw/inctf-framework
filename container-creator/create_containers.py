@@ -137,6 +137,7 @@ def generate_services_config(services):
     custom_key_mappings = {}
     custom_key_mappings["internal_port"] = "port"
     custom_key_mappings["description"] = "service_description"
+    current_offset = 0
     for service in services:
         service_config = {}
         for info in required_info:
@@ -145,6 +146,8 @@ def generate_services_config(services):
             else:
                 service_config[info] = service[info]
 
+        service_config["offset_external_port"] = current_offset
+        current_offset = current_offset + 1
         configs.append(service_config)
 
     return configs
