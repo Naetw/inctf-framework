@@ -207,6 +207,7 @@ def generate_location_config(services, teams, host):
 
 def generate_initial_db_config(services, teams, containers_host,
                                containers_ports_start, db_dir):
+    print "Generating DB configuration"
     db_config_file = os.path.join(db_dir, "initial_db_state.json")
 
     db_config = {}
@@ -221,6 +222,7 @@ def generate_initial_db_config(services, teams, containers_host,
     db_config_fh = open(db_config_file, 'w')
     json.dump(db_config, db_config_fh, indent=4, separators=(',', ': '))
     db_config_fh.close()
+    print "Wrote DB configuration to %s" % (db_config_file)
     return
 
 
