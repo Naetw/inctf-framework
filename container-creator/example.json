@@ -5,12 +5,10 @@
     "sudo": true,
     "teams": [
         {
-            "password": "team1",
             "name": "team1",
             "namespace": "namespace_team1"
         },
         {
-            "password": "team2",
             "name": "team2",
             "namespace": "namespace_team2"
         }
