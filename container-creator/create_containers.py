@@ -22,8 +22,8 @@ def build_images(services, container_config_dir):
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             print "Something went wrong when building image of %s" % (service["name"])
-            print "Stdout: %s", stdout
-            print "Stderr: %s", stderr
+            print "Stdout: %s" % (stdout)
+            print "Stderr: %s" % (stderr)
         else:
             print "Built image for service %s with tag %s" % (service["name"], service["name"])
 
