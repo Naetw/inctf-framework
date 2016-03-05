@@ -153,6 +153,28 @@ def generate_services_config(services):
     return configs
 
 
+def generate_scripts_config(services):
+    configs = []
+    for service in services:
+        for key in ["getflag", "setflag"]:
+            script_config = {}
+            script_config["type"] = key
+            script_config["name"] = os.path.basename(service[key])
+            script_config["service"] = service["name"]
+            script_config["is_working"] = 1
+            configs.append(script_config)
+
+        for script in service["benign"]:
+            script_config = {}
+            script_config["type"] = "benign"
+            script_config["name"] = os.path.basename(script)
+            script_config["service"] = service["name"]
+            script_config["is_working"] = 1
+            configs.append(script_config)
+
+    return configs
+
+
 def generate_teams_config(teams, services_count, host, start_port):
     configs = []
     next_start_port = start_port
@@ -195,6 +217,7 @@ def generate_initial_db_config(services, teams, containers_host,
     db_config["services_location"] = generate_location_config(db_config["services"],
                                                               db_config["teams"],
                                                               containers_host)
+    db_config["scripts"] = generate_scripts_config(services)
     db_config_fh = open(db_config_file, 'w')
     json.dump(db_config, db_config_fh, indent=4, separators=(',', ': '))
     db_config_fh.close()
