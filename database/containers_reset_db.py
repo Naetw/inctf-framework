@@ -29,9 +29,9 @@ def insert_config_values(config):
 
     # Insert team info from config
     print "Inserting team info into database"
+    query = """INSERT INTO teams (team_name, services_ports_low, services_ports_high)
+            VALUES (%s, %s, %s)"""
     for team in config["teams"]:
-        query = """INSERT INTO teams (team_name, services_ports_low,
-                services_ports_high) VALUES (%s, %s, %s)"""
         values = (team["name"], team["services_ports_low"],
                   team["services_ports_high"])
         cursor.execute(query, values)
