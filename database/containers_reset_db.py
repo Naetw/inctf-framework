@@ -40,6 +40,23 @@ def insert_config_values(config):
     db_obj.commit()
     print "done"
 
+    # Insert services info from config
+    print "Inserting services info into database"
+    query = """INSERT INTO services (name, internal_port, description, authors,
+            flag_id_description, offset_external_port) VALUES (%s, %s, %s, %s, %s,
+            %s)"""
+    for service in config["services"]:
+        description = service.get("description", "")
+        flag_id_description = service.get("flag_id_description", "")
+        values = (service["name"], service["internal_port"], description,
+                  ''.join(service["authors"]), flag_id_description,
+                  service["offset_external_port"])
+        cursor.execute(query, values)
+        service["id"] = db_obj.insert_id()
+
+    db_obj.commit()
+    print "done"
+
     return
 
 
