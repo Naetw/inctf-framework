@@ -20,16 +20,17 @@ def run_command_with_shell(cmd):
 
 def recreate_database():
     print "Recreating tables in DB"
-    my_user = MYSQL_DATABASE_USER
-    my_db = MYSQL_DATABASE_DB
-    out, err, ret = run_command_with_shell("mysql -u " + my_user + " -p" +
-                                           MYSQL_DATABASE_PASSWORD + " " + my_db +
-                                           "< database.sql")
+    command = "mysql -u " + MYSQL_DATABASE_USER + " -p" + MYSQL_DATABASE_PASSWORD + " " + \
+              MYSQL_DATABASE_DB + "< database.sql"
+    out, err, ret = run_command_with_shell(command)
     if ret != 0:
         print "DB recreate failed with exitcode %d." % (ret)
         print "Stdout: ", out
         print "Stderr: ", err
         sys.exit(1)
+
+    print "done"
+    return
 
 
 def main():
