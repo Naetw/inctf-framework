@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 # "Standard library imports"
+import base64
 import json
+import os
 import random
 import subprocess
 import sys
@@ -13,6 +15,56 @@ import MySQLdb.cursors
 
 # "Imports from current project"
 from settings import MYSQL_DATABASE_DB, MYSQL_DATABASE_PASSWORD, MYSQL_DATABASE_USER
+
+
+services_dir = os.path.realpath(os.path.join(os.pardir, "services"))
+
+
+def read_script(service, script):
+    fh = open(os.path.join(services_dir, service, "scripts", script))
+    service = base64.b64encode(fh.read())
+    fh.close()
+    return service
+
+
+def generate_and_insert_other_values(config):
+    db_obj = MySQLdb.connect(user=MYSQL_DATABASE_USER, passwd=MYSQL_DATABASE_PASSWORD,
+                             db=MYSQL_DATABASE_DB,
+                             cursorclass=MySQLdb.cursors.DictCursor)
+
+    cursor = db_obj.cursor()
+
+    # Team score
+    query = """INSERT INTO team_score (team_id, score, reason) VALUES (%s, 0,
+            "Initial score")"""
+
+    for team_name in config["teams"]:
+        values = (config["teams"][team_name]["id"],)
+        cursor.execute(query, values)
+
+    # Team service status
+    query = """INSERT INTO team_service_state (team_id, service_id, state, reason)
+            VALUES (%s, %s, 2, "Initial state")"""
+
+    for service_name in config["services"]:
+        service = config["services"][service_name]
+        for team_name in config["teams"]:
+            team = config["teams"][team_name]
+            values = (team["id"], service["id"])
+            cursor.execute(query, values)
+
+    # Script payload
+    query = """INSERT INTO script_payload (script_id, payload) VALUES (%s, %s)"""
+    for script_id in config["scripts"]:
+        script = config["scripts"][script_id]
+        payload = read_script(script["service"], script["name"])
+        values = (script_id, payload)
+        cursor.execute(query, values)
+
+    db_obj.commit()
+    cursor.close()
+    db_obj.close()
+    return
 
 
 def insert_config_values(config):
@@ -68,12 +120,15 @@ def insert_config_values(config):
     query = """INSERT INTO scripts (name, type, service_id, is_working) VALUES (%s,
             %s, %s, %s)"""
 
+    scripts = {}
     for script in config["scripts"]:
         is_working = script.get("is_working", 1)
         service_id = config["services"][script["service"]]["id"]
         values = (script["name"], script["type"], service_id, is_working)
         cursor.execute(query, values)
+        scripts[db_obj.insert_id()] = script
 
+    config["scripts"] = scripts
     db_obj.commit()
     print "done"
 
@@ -105,6 +160,9 @@ def insert_config_values(config):
 
     db_obj.commit()
     print "done"
+
+    cursor.close()
+    db_obj.close()
     return
 
 
@@ -141,6 +199,7 @@ def main():
     fh.close()
     recreate_database()
     insert_config_values(config)
+    generate_and_insert_other_values(config)
 
 
 if __name__ == "__main__":
