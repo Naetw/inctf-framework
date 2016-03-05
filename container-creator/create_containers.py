@@ -167,6 +167,22 @@ def generate_teams_config(teams, services_count, host, start_port):
     return configs
 
 
+def generate_location_config(services, teams, host):
+    configs = []
+    for team in teams:
+        for service in services:
+            config = {}
+            config["team"] = team["name"]
+            config["service"] = service["name"]
+            config["host_ip"] = host
+            config["host_port"] = team["services_ports_low"] + \
+                service["offset_external_port"]
+            assert config["host_port"] <= team["services_ports_high"]
+            configs.append(config)
+
+    return configs
+
+
 def generate_initial_db_config(services, teams, containers_host,
                                containers_ports_start, db_dir):
     db_config_file = os.path.join(db_dir, "initial_db_state.json")
@@ -176,6 +192,9 @@ def generate_initial_db_config(services, teams, containers_host,
     db_config["teams"] = generate_teams_config(teams, len(services), containers_host,
                                                containers_ports_start)
     db_config["services"] = generate_services_config(services)
+    db_config["services_location"] = generate_location_config(db_config["services"],
+                                                              db_config["teams"],
+                                                              containers_host)
     db_config_fh = open(db_config_file, 'w')
     json.dump(db_config, db_config_fh, indent=4, separators=(',', ': '))
     db_config_fh.close()
