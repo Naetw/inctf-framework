@@ -82,6 +82,8 @@ def generate_dockerfiles(services, image_name, output_dir, dockerfile_template,
         if "args" in service:
             data["cmd"].extend(service["args"])
 
+        data["cmd"] = json.dumps(data["cmd"])
+
         if "pre_install" in service:
             data["pre_install"] = os.linesep.join(service["pre_install"])
         else:
