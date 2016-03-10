@@ -506,10 +506,11 @@ def container_changed():
         latest_digest = result['latest_digest']
 
         if latest_digest == curr_digest:
+            app.logger.info("No new changes detected.")
             continue
 
-        app.logger.info("update_required to True for team %d service %d" % (team_id,
-                        service_id))
+        app.logger.info("update_required set to True for team %d service %d" %
+                        (team_id, service_id))
         app.logger.info("Current digest is %s" % (curr_digest))
 
         c.execute("""update containers set update_required = True, latest_digest = %s
