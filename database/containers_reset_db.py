@@ -76,8 +76,8 @@ def insert_config_values(config):
 
     # Very first, create the game. Copied from vm_reset_db.py
     new_game_id = random.randint(0, 1000000)
-    cursor.execute("""INSERT INTO game (id) VALUES (%s)""",
-                   (new_game_id,))
+    cursor.execute("""INSERT INTO game (id, exploit_containers_host) VALUES (%s, %s)""",
+                   (new_game_id, config["exploit_containers_host"]))
 
     # Insert team info from config
     print "Inserting team info into database"

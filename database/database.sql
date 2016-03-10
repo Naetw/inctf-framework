@@ -12,7 +12,9 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
 DROP TABLE IF EXISTS `game` ;
 
 CREATE TABLE `game` (
-  `id` INT NULL DEFAULT NULL);
+  `id` INT NOT NULL,
+  `exploit_containers_host` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`));
 
 
 -- -----------------------------------------------------

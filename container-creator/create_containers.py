@@ -221,6 +221,7 @@ def generate_initial_db_config(services, teams, containers_host,
                                                               db_config["teams"],
                                                               containers_host)
     db_config["scripts"] = generate_scripts_config(services)
+    db_config["exploit_containers_host"] = containers_host
     db_config_fh = open(db_config_file, 'w')
     json.dump(db_config, db_config_fh, indent=4, separators=(',', ': '))
     db_config_fh.close()
