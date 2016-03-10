@@ -461,6 +461,59 @@ def services_list():
     return json.dumps(services)
 
 
+@app.route("/container_changed", methods=['POST'])
+def container_changed():
+    callback_content = json.loads(request.get_data())
+    events = callback_content['events']
+    app.logger.info("Got %d events" % (len(events)))
+    for event in events:
+        if event['action'] != 'push':
+            app.logger.info("Ignoring event %s" % (event['action']))
+            continue
+
+        target_repo = event['target']['repository']
+        curr_digest = event['target']['digest']
+        team = target_repo.split('/')[0].split('_')[1]
+        container_type, service = target_repo.split('/')[1].split('_')
+        app.logger.info("Team: %s, type: %s, service: %s" % (team, container_type,
+                        service))
+        c = mysql.get_db().cursor()
+        c.execute("""select id from teams where team_name = %s""", (team, ))
+        result = c.fetchone()
+        if not result:
+            app.logger.warning("Team ID of team %s not found" % (team))
+            continue
+
+        team_id = result["id"]
+
+        c.execute("""select id from services where name = %s""", (service, ))
+        result = c.fetchone()
+        if not result:
+            app.logger.warning("Service ID of service %s not found" % (service))
+            continue
+
+        service_id = result["id"]
+        c.execute("""select latest_digest from containers where team_id = %s and
+                  service_id = %s and type = %s""",
+                  (team_id, service_id, container_type))
+        result = c.fetchone()
+        latest_digest = result['latest_digest']
+
+        if latest_digest == curr_digest:
+            continue
+
+        app.logger.info("update_required to True for team %d service %d" % (team_id,
+                        service_id))
+        app.logger.info("Current digest is %s" % (curr_digest))
+
+        c.execute("""update containers set update_required = True, latest_digest = %s
+                  where team_id = %s and service_id = %s and type = %s""",
+                  (curr_digest, team_id, service_id, container_type))
+
+    mysql.get_db().commit()
+    return "OK"
+
+
 def get_uptime_for_team(team_id, c):
 
     c.execute("""select COUNT(id) as count, service_id from team_service_state where
