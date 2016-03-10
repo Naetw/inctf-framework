@@ -463,6 +463,12 @@ def services_list():
 
 @app.route("/container_changed", methods=['POST'])
 def container_changed():
+    secret = request.headers.get('secret')
+
+    if secret != DB_SECRET:
+        app.logger.error("Got invalid secret: %s. Aborting." % (secret))
+        abort(401)
+
     callback_content = json.loads(request.get_data())
     events = callback_content['events']
     app.logger.info("Got %d events" % (len(events)))
