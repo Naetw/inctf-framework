@@ -331,6 +331,7 @@ CREATE TABLE `containers` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(45) NOT NULL,
   `registry_namespace` VARCHAR(45) NOT NULL,
+  `image_name` VARCHAR(45) NOT NULL,
   `team_id` INT NOT NULL,
   `service_id` INT NOT NULL,
   `type` ENUM('SERVICE', 'EXPLOIT') NOT NULL,

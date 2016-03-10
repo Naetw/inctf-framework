@@ -148,14 +148,14 @@ def insert_config_values(config):
 
     # Insert containers info in DB
     print "Inserting container information into DB"
-    query = """INSERT INTO containers (name, service_id, team_id, registry_namespace,
-            type) VALUES (%s, %s, %s, %s, %s)"""
+    query = """INSERT INTO containers (name, image_name, service_id, team_id,
+            registry_namespace, type) VALUES (%s, %s, %s, %s, %s, %s)"""
 
     for container in config["containers"]:
         team_id = config["teams"][container["team"]]["id"]
         service_id = config["services"][container["service"]]["id"]
-        values = (container["name"], service_id, team_id, container["namespace"],
-                  container["type"])
+        values = (container["name"], container["image_name"], service_id, team_id,
+                  container["namespace"], container["type"])
         cursor.execute(query, values)
 
     db_obj.commit()

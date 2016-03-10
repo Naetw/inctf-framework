@@ -122,7 +122,9 @@ def generate_service_containers_config(services, teams):
     for service in services:
         for team in teams:
             team_configuration = {}
-            team_configuration["name"] = "service_" + service["name"]
+            team_configuration["name"] = "service_" + service["name"] + "_" + \
+                                         team["name"]
+            team_configuration["image_name"] = "service_" + service["name"]
             team_configuration["namespace"] = team["namespace"]
             team_configuration["team"] = team["name"]
             team_configuration["service"] = service["name"]
