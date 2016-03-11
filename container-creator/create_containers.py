@@ -210,7 +210,7 @@ def generate_location_config(services, teams, host):
 
 
 def generate_initial_db_config(services, teams, containers_host,
-                               containers_ports_start, db_dir):
+                               containers_ports_start, db_dir, flags_dir):
     print "Generating DB configuration"
     db_config_file = os.path.join(db_dir, "initial_db_state.json")
 
@@ -224,6 +224,7 @@ def generate_initial_db_config(services, teams, containers_host,
                                                               containers_host)
     db_config["scripts"] = generate_scripts_config(services)
     db_config["exploit_containers_host"] = containers_host
+    db_config["flags_dir"] = flags_dir
     db_config_fh = open(db_config_file, 'w')
     json.dump(db_config, db_config_fh, indent=4, separators=(',', ': '))
     db_config_fh.close()
@@ -321,6 +322,7 @@ def main():
     teams = configuration["teams"]
     container_host = configuration["containers_host"]
     containers_ports_start = configuration["containers_ports_start"]
+    flags_dir = configuration["flag_storage_folder"]
     services = []
     for service_name in configuration["services"]:
         service_info_fh = open(os.path.join(services_dir, service_name, "info.json"))
@@ -335,7 +337,7 @@ def main():
                          apt_proxy_host, apt_proxy_port)
     build_images(services, output_dir)
     generate_initial_db_config(services, teams, container_host,
-                               containers_ports_start, output_dir)
+                               containers_ports_start, output_dir, flags_dir)
     return
 
 

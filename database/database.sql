@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS `game` ;
 CREATE TABLE `game` (
   `id` INT NOT NULL,
   `exploit_containers_host` VARCHAR(45) NOT NULL,
+  `flags_storage_folder_host` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`id`));
 
 

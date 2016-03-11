@@ -13,6 +13,7 @@
             "namespace": "namespace_team2"
         }
     ],
+    "flag_storage_folder": "/flags",
     "containers_host": "127.0.0.1",
     "containers_ports_start" : 10000
 }
