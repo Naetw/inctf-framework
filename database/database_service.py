@@ -511,44 +511,6 @@ def container_changed():
     return "OK"
 
 
-@app.route("/containerstoupdate")
-def containers_to_update():
-    secret = request.args.get('secret')
-
-    if secret != DB_SECRET:
-        abort(401)
-
-    containers_list = []
-    cursor = mysql.get_db().cursor()
-    cursor.execute("""select name, registry_namespace, image_name, team_id,
-                   service_id, type from containers where update_required = True""")
-    containers = cursor.fetchall()
-    cursor.execute("""select exploit_containers_host from game limit 1""")
-    exploit_containers_location = cursor.fetchone()["exploit_containers_host"]
-    required_keys = ["name", "image_name", "registry_namespace"]
-    for container in containers:
-        ret_container = {}
-        for key in required_keys:
-            ret_container[key] = container[key]
-
-        if container["type"].lower() == "service":
-            cursor.execute("""select host_ip, host_port from services_locations where
-                           team_id = %s and service_id = %s limit 1""",
-                           (container["team_id"], container["service_id"]))
-            result = cursor.fetchone()
-            ret_container["ip"] = result["host_ip"]
-            ret_container["port"] = result["host_port"]
-        elif container["type"].lower() == "exploit":
-            ret_container["ip"] = exploit_containers_location
-        else:
-            app.logger.warn("Unknown container type: %s" % (container["type"]))
-            continue
-
-        containers_list.append(ret_container)
-
-    return json.dumps(containers_list)
-
-
 def get_uptime_for_team(team_id, c):
 
     c.execute("""select COUNT(id) as count, service_id from team_service_state where
