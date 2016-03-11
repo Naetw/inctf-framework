@@ -98,15 +98,15 @@ def insert_config_values(config):
     # Insert services info from config
     print "Inserting services info into database"
     query = """INSERT INTO services (name, internal_port, description, authors,
-            flag_id_description, offset_external_port) VALUES (%s, %s, %s, %s, %s,
-            %s)"""
+            flag_id_description, offset_external_port, workdir) VALUES (%s, %s, %s,
+            %s, %s, %s, %s)"""
     services = {}
     for service in config["services"]:
         description = service.get("description", "")
         flag_id_description = service.get("flag_id_description", "")
         values = (service["name"], service["internal_port"], description,
                   ''.join(service["authors"]), flag_id_description,
-                  service["offset_external_port"])
+                  service["offset_external_port"], service["workdir"])
         cursor.execute(query, values)
         service["id"] = db_obj.insert_id()
         services[service["name"]] = service

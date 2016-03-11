@@ -137,7 +137,7 @@ def generate_service_containers_config(services, teams):
 def generate_services_config(services):
     configs = []
     required_info = ["name", "internal_port", "description", "authors",
-                     "flag_id_description"]
+                     "flag_id_description", "workdir"]
     custom_key_mappings = {}
     custom_key_mappings["internal_port"] = "port"
     custom_key_mappings["description"] = "service_description"
