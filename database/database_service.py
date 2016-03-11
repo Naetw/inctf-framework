@@ -477,45 +477,35 @@ def container_changed():
             app.logger.info("Ignoring event %s" % (event['action']))
             continue
 
-        target_repo = event['target']['repository']
+        namespace, image_name = event['target']['repository'].split('/')
         curr_digest = event['target']['digest']
-        team = target_repo.split('/')[0].split('_')[1]
-        container_type, service = target_repo.split('/')[1].split('_')
-        app.logger.info("Team: %s, type: %s, service: %s" % (team, container_type,
-                        service))
+        container_type = image_name.split('_')[0]
+        app.logger.info("Namespace: %s, image_name: %s, type: %s" % (namespace,
+                        image_name, container_type))
         c = mysql.get_db().cursor()
-        c.execute("""select id from teams where team_name = %s""", (team, ))
+
+        c.execute("""select latest_digest from containers where registry_namespace =
+                  %s and image_name = %s and type = %s""",
+                  (namespace, image_name, container_type))
         result = c.fetchone()
         if not result:
-            app.logger.warning("Team ID of team %s not found" % (team))
+            app.logger.warning("""No %s container found with image name %s in namespace
+                               %s""" % (container_type, image_name, namespace))
             continue
 
-        team_id = result["id"]
-
-        c.execute("""select id from services where name = %s""", (service, ))
-        result = c.fetchone()
-        if not result:
-            app.logger.warning("Service ID of service %s not found" % (service))
-            continue
-
-        service_id = result["id"]
-        c.execute("""select latest_digest from containers where team_id = %s and
-                  service_id = %s and type = %s""",
-                  (team_id, service_id, container_type))
-        result = c.fetchone()
         latest_digest = result['latest_digest']
 
         if latest_digest == curr_digest:
             app.logger.info("No new changes detected.")
             continue
 
-        app.logger.info("update_required set to True for team %d service %d" %
-                        (team_id, service_id))
+        app.logger.info("update_required set to True for image %s in namespace %s" %
+                        (image_name, namespace))
         app.logger.info("Current digest is %s" % (curr_digest))
 
         c.execute("""update containers set update_required = True, latest_digest = %s
-                  where team_id = %s and service_id = %s and type = %s""",
-                  (curr_digest, team_id, service_id, container_type))
+                  where registry_namespace = %s and image_name = %s and type = %s""",
+                  (curr_digest, namespace, image_name, container_type))
 
     mysql.get_db().commit()
     return "OK"
