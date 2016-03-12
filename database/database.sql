@@ -338,7 +338,7 @@ CREATE TABLE `containers` (
   `team_id` INT NOT NULL,
   `service_id` INT NOT NULL,
   `type` ENUM('SERVICE', 'EXPLOIT') NOT NULL,
-  `update_required` TINYINT(1) NOT NULL DEFAULT 0,
+  `update_required` TINYINT(1) NOT NULL DEFAULT 1,
   `latest_digest` VARCHAR(80) NULL DEFAULT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
