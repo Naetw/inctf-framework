@@ -55,6 +55,16 @@ def create_argument_parser():
                         help="Directory to output Dockerfile and other files")
     parser.add_argument("--apt-proxy-host", type=str, help="IP address of APT proxy")
     parser.add_argument("--apt-proxy-port", type=int, help="Port used by APT proxy")
+    parser.add_argument("-ds", "--distribution-server", type=str, help="""Server
+                        running Docker distribution""")
+    parser.add_argument("-dpo", "--distribution-port", type=int, help="""Port to
+                        connect to Docker distribution""")
+    parser.add_argument("-du", "--distribution-user", type=str, help="""Username of
+                        gameserver in Docker distribution""")
+    parser.add_argument("-dpass", "--distribution-pass", type=str, help="""Password of
+                        gameserver user""")
+    parser.add_argument("-de", "--distribution-email", type=str, help="""Email ID of
+                        gameserver user""")
     return parser
 
 
@@ -232,6 +242,49 @@ def generate_initial_db_config(services, teams, containers_host,
     return
 
 
+def push_all_containers_to_distribution(teams, services, creds):
+    containers_config = generate_service_containers_config(services, teams)
+    server = ':'.join([creds["server"], str(creds["port"])])
+    print "Creating tags for all services of all teams"
+    tags_to_push = []
+    for config in containers_config:
+        tag = '/'.join([server, config["namespace"], config["image_name"]])
+        command = ["docker", "tag", config["service"], tag]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode != 0:
+            print "Tagging image for team %s, service %s failed" % \
+                  (config["team"], config["service"])
+            print "Stdout: %s" % (stdout)
+            print "Stderr: %s" % (stderr)
+        else:
+            tags_to_push.append(tag)
+
+    print "%d tags to push" % (len(tags_to_push))
+    print "Generating shell script to push tags to server"
+    script_file_name = "push_tags.sh"
+    fh = open(script_file_name, 'w')
+    for _ in xrange(3):
+        fh.write("docker login -u %s -p %s -e \"%s\" %s" %
+                 (creds["user"], creds["pass"], creds["email"], server))
+        fh.write(os.linesep)
+
+    total = len(tags_to_push)
+    for tag_id in xrange(len(tags_to_push)):
+        fh.write('echo "Pushing %d of %d"' % (tag_id + 1, total))
+        tag = tags_to_push[tag_id]
+        for _ in xrange(3):
+            fh.write(os.linesep)
+            fh.write("docker push %s" % (tag))
+            fh.write(os.linesep)
+
+    fh.close()
+    os.system("sh ./%s" % (script_file_name))
+    os.remove(script_file_name)
+    return
+
+
 def test_arguments(args):
     if not os.path.isfile(args.config):
         print "Cannot find file %s. Exiting!" % (args.config)
@@ -251,6 +304,15 @@ def test_arguments(args):
 
     if args.apt_proxy_port is None and args.apt_proxy_host is not None:
         print "APT proxy host specified but no port specified. Exiting!"
+        sys.exit(1)
+
+    registry_config = [args.distribution_email, args.distribution_pass,
+                       args.distribution_port, args.distribution_server,
+                       args.distribution_user]
+
+    if not all(registry_config) and any(registry_config):
+        print "Please specify all values required to connect to Docker " + \
+            "distribution server: server, port, username, password and email"
         sys.exit(1)
 
     return
@@ -339,6 +401,17 @@ def main():
     build_images(services, output_dir)
     generate_initial_db_config(services, teams, container_host,
                                containers_ports_start, output_dir, flags_dir)
+    if args.distribution_server:
+        registry_config = {"server": args.distribution_server,
+                           "port": args.distribution_port,
+                           "user": args.distribution_user,
+                           "pass": args.distribution_pass,
+                           "email": args.distribution_email
+                           }
+        push_all_containers_to_distribution(teams, services, registry_config)
+    else:
+        print "Not pushing containers since Docker distribution configuration " + \
+              "not specified"
     return
 
 
