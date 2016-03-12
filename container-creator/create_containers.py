@@ -313,6 +313,7 @@ def main():
 
     game_name = configuration["name"]
     output_dir = os.path.join(os.path.realpath(args.output_dir), game_name)
+    print "Output directory set to %s" % (output_dir)
     if os.path.exists(output_dir):
         print "%s exists. Deleting directory." % (output_dir)
         shutil.rmtree(output_dir)
