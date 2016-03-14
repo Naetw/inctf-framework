@@ -59,7 +59,7 @@ def main():
             update_service_containers(db, updated_containers)
             print "Updated %d containers" % (len(updated_containers))
         else:
-            print "All service containers are updated"
+            print "No service containers require updating"
 
         print "Finding exploit containers that need to be updated"
         updated_containers = get_exploit_containers_needing_update(c)
@@ -68,7 +68,7 @@ def main():
             update_exploit_containers(db, updated_containers)
             print "Updated %d containers" % (len(updated_containers))
         else:
-            print "All exploit containers are updated"
+            print "No exploit containers require updating"
 
         # Create a new tick
         current = datetime.now()
