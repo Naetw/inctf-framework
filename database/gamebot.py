@@ -59,7 +59,16 @@ def main():
             update_service_containers(db, updated_containers)
             print "Updated %d containers" % (len(updated_containers))
         else:
-            print "All containers are updated"
+            print "All service containers are updated"
+
+        print "Finding exploit containers that need to be updated"
+        updated_containers = get_exploit_containers_needing_update(c)
+        if updated_containers:
+            print "%d containers need to be updated" % (len(updated_containers))
+            update_exploit_containers(db, updated_containers)
+            print "Updated %d containers" % (len(updated_containers))
+        else:
+            print "All exploit containers are updated"
 
         # Create a new tick
         current = datetime.now()
@@ -150,6 +159,13 @@ def get_service_containers_needing_update(cursor):
         containers_list.append(ret_container)
 
     return containers_list
+
+
+def get_exploit_containers_needing_update(cursor):
+    cursor.execute("""select name, registry_namespace, image_name, team_id,
+                   service_id from containers where update_required = True and type =
+                   'Exploit'""")
+    return cursor.fetchall()
 
 
 def get_list_of_scripts_to_run(c, service_ids, num_benign_scripts):
@@ -316,6 +332,86 @@ def update_service_containers(db, containers):
         remote_client.start(container["name"])
         cursor.execute("""update containers set update_required = False where
                        team_id=%s and service_id=%s and type='Service'""",
+                       (container["team_id"], container["service_id"]))
+        db.commit()
+
+    return
+
+
+def update_exploit_containers(db, containers):
+    max_client_connect_retries = 3
+    user = DOCKER_DISTRIBUTION_USER
+    password = DOCKER_DISTRIBUTION_PASS
+    email = DOCKER_DISTRIBUTION_EMAIL
+    server = DOCKER_DISTRIBUTION_SERVER
+    port_num = REMOTE_DOCKER_DAEMON_PORT
+    cursor = db.cursor()
+    cursor.execute("""select exploit_containers_host from game limit 1""")
+    result = cursor.fetchone()
+    exploit_containers_host = result["exploit_containers_host"]
+    url = "tcp://%s:%d" % (exploit_containers_host, port_num)
+    remote_client = docker.Client(base_url=url)
+    for _ in xrange(max_client_connect_retries):
+        if remote_client.ping() == "OK":
+            break
+    else:
+        logging.error("Unable to connect to docker instance on %s:%s" %
+                      (exploit_containers_host, port_num))
+        return
+
+    for container in containers:
+        logging.info("Updating service container of service %d team %d on host %s" %
+                     (container["service_id"], container["team_id"],
+                      exploit_containers_host))
+
+        try:
+            # Stop container
+            remote_client.stop(container["name"])
+            logging.info("Stopped container %s" % (container["name"],))
+        except docker.errors.NotFound:
+            logging.warning("No container %s found on %s when stopping" %
+                            (container["name"], exploit_containers_host))
+
+        try:
+            # Delete container
+            remote_client.remove_container(container["name"])
+            logging.info("Removed container %s" % (container["name"]))
+        except docker.errors.NotFound:
+            logging.warning("No container %s found on %s when removing" %
+                            (container["name"], exploit_containers_host))
+
+        # Update image
+        try:
+            remote_client.login(username=user, password=password, email=email,
+                                registry=server)
+        except docker.errors.APIError, e:
+            logging.error("Login to registry %s as %s failed" % (server, user))
+            logging.error(e)
+            continue
+
+        image_url = '/'.join([server, container['registry_namespace'],
+                              container['image_name']])
+        try:
+            output = list(remote_client.pull(image_url, stream=True))
+        except docker.errors.APIError, e:
+            logging.error("APIError when pulling image %s failed" % (image_url))
+            logging.error(e)
+            continue
+
+        last_line_json = json.loads(output[-1])
+        if 'Downloaded newer image' not in last_line_json['status'] and \
+           'Image is up to date' not in last_line_json['status']:
+            # Error!
+            logging.error("Pulling image %s failed. Docker client output below." %
+                          (image_url))
+            logging.error("%s" % (output))
+            continue
+
+        remote_client.create_container(image=image_url,
+                                       name=container["name"])
+        remote_client.start(container["name"])
+        cursor.execute("""update containers set update_required = False where
+                       team_id=%s and service_id=%s and type='Exploit'""",
                        (container["team_id"], container["service_id"]))
         db.commit()
 
