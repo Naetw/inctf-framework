@@ -258,11 +258,16 @@ def update_service_containers(db, containers):
             # Stop container
             remote_client.stop(container["name"])
             logging.info("Stopped container %s" % (container["name"],))
+        except docker.errors.NotFound:
+            logging.warning("No container %s found on %s when stopping" %
+                            (container["name"], host_ip))
+
+        try:
             # Delete container
             remote_client.remove_container(container["name"])
             logging.info("Removed container %s" % (container["name"]))
         except docker.errors.NotFound:
-            logging.warning("No container %s found on %s" %
+            logging.warning("No container %s found on %s when removing" %
                             (container["name"], host_ip))
 
         # Update image
