@@ -489,9 +489,30 @@ def container_changed():
                   (namespace, image_name, container_type))
         result = c.fetchone()
         if not result:
-            app.logger.warning("""No %s container found with image name %s in namespace
-                               %s""" % (container_type, image_name, namespace))
-            continue
+            if container_type.lower() == "service":
+                app.logger.warning("""No service container found with image name %s
+                                   in namespace %s. Not processing further""" %
+                                   (image_name, namespace))
+                continue
+            elif container_type.lower() == "exploit":
+                # Exploit container was created just now. Insert into DB and continue.
+                app.logger.warning("""Creating exploit container entry for %s""" %
+                                   (image_name))
+                team_name = namespace.split('_')[1]
+                service_name = image_name.split('_')[1]
+                container_name = '_'.join([image_name, team_name])
+                c.execute("""SELECT id FROM teams where team_name = %s""",
+                          (team_name, ))
+                team_id = c.fetchone()["id"]
+                c.execute("""SELECT id FROM services where name = %s""",
+                          (service_name, ))
+                service_id = c.fetchone()["id"]
+                values = (container_name, namespace, image_name, team_id, service_id,
+                          "EXPLOIT")
+                c.execute("""INSERT INTO containers(name, registry_namespace,
+                          image_name, team_id, service_id, type) VALUES(%s, %s, %s,
+                          %s, %s, %s)""", values)
+                continue
 
         latest_digest = result['latest_digest']
 
