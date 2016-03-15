@@ -360,10 +360,12 @@ def update_exploit_containers(db, containers):
         return
 
     for container in containers:
-        logging.info("Updating service container of service %d team %d on host %s" %
+        logging.info("Updating exploit image of service %d team %d on host %s" %
                      (container["service_id"], container["team_id"],
                       exploit_containers_host))
 
+        # Clean up just in case scorebot didn't do so after running exploit
+        # Image update will fail otherwise
         try:
             # Stop container
             remote_client.stop(container["name"])
@@ -407,9 +409,6 @@ def update_exploit_containers(db, containers):
             logging.error("%s" % (output))
             continue
 
-        remote_client.create_container(image=image_url,
-                                       name=container["name"])
-        remote_client.start(container["name"])
         cursor.execute("""update containers set update_required = False where
                        team_id=%s and service_id=%s and type='Exploit'""",
                        (container["team_id"], container["service_id"]))
