@@ -18,7 +18,7 @@ import urllib
 from multiprocessing import Array, Event, Process, Value
 
 
-DB_HOST = '127.0.0.1:6000'
+DB_HOST = '127.0.0.1:4000'
 DB_SECRET = 'YOUKNOWSOMETHINGYOUSUCK'
 
 SUDO = '/usr/bin/sudo'

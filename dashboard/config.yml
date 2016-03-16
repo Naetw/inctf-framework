@@ -1,5 +1,5 @@
 name: FantastiCTF!
-api_base_url: http://127.0.0.1:6000
+api_base_url: http://127.0.0.1:4000
 api_secret: YOUKNOWSOMETHINGYOUSUCK
 teams:
     2:
