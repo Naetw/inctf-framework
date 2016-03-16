@@ -245,7 +245,7 @@ def handler(signum, frame):
 
 
 class ScriptExec(Process):
-    def __init__(self, slock, team_id, sandbox_user, script_id, service_id,
+    def __init__(self, slocks, team_id, sandbox_user, script_id, service_id,
                  service_name, timeout, script_type, script_path, ip, port, delay=0):
         self.delay = delay
         self.result = {'ERROR': 0, 'ERROR_MSG': 'Init'}
@@ -266,7 +266,7 @@ class ScriptExec(Process):
         self.args = None
         self.flags = {}
         self.user = sandbox_user
-        self.slock = slock
+        self.slocks = slocks
 
         super(ScriptExec, self).__init__()
         self.log.info('ScriptExec Init')
@@ -394,17 +394,20 @@ class ScriptExec(Process):
     def run(self):
         signal.signal(signal.SIGTERM, handler)
         if self.script_type == 'setflag':
-            self.slock.clear()
+            for lock in self.slocks:
+                lock.clear()
 
         self.log.info(('Running script_id:%d, type:%s, dest_ip:%s, dest_port:%d,' +
                       'delay:%.2f secs.') % (self.script_id, self.script_type,
                                              self.ip, self.port, self.delay))
         time.sleep(self.delay)
         if self.script_type == 'setflag':
-            self.slock.clear()
+            for lock in self.slocks:
+                lock.clear()
         elif self.script_type != 'benign':
             self.log.info('Waiting for setflag event. ' + str(self.get_status()))
-            self.slock.wait()
+            for lock in self.slocks:
+                lock.wait()
         if TEST:
             self.args = self.get_args()
             self.log.info('Starting sandbox with args: ' + str(self.args))
@@ -449,7 +452,9 @@ class ScriptExec(Process):
                                " | Script output:" + output + err}
 
             if self.script_type == 'setflag':
-                self.slock.set()
+                for lock in self.slocks:
+                    lock.set()
+
                 self.log.info('Setting setflag event. '+str(self.get_status()))
 
             self.push_result(self.result)
@@ -470,7 +475,8 @@ class Scheduler:
         self.status_path = status_path
         self.process_list = []
         self.db = DBClient()
-        self.locks = []
+        self.setflag_locks = {}
+        self.getflag_locks = {}
 
         self.status = {'state_id': 'INIT', 'last_error': None, 'script_err': None,
                        'script_ok': 0, 'script_fail': 0, 'script_tot': 0}
@@ -633,10 +639,12 @@ class Scheduler:
             return None
 
     def update_all_scripts(self):
-        slist = []
-        for tid, ll in self.run_list.iteritems():
-            slist = slist + ll
-        slist = set(slist)
+        slist = set()
+        for _, scripts in self.run_list.iteritems():
+            for script in scripts:
+                if script["type"] == 'script':
+                    slist.add(script["id"])
+
         for sid in slist:
             self.update_script_repo(sid)
 
@@ -645,7 +653,8 @@ class Scheduler:
         interval = float(self.state_expire-STATE_EXPIRE_MIN) / l
         d = []
         last_delay = None
-        for i, sid in enumerate(run_list):
+        for i, entry in enumerate(run_list):
+            sid = entry["id"]
             # DELAY = INTERVAL +- RANDOMIZED_DELAY
             delay = i * interval + (interval - random.gauss(interval, SIGMA_FACTOR *
                                                             (interval)))
@@ -673,38 +682,51 @@ class Scheduler:
 
         # sort by service
         ss = {}
-        for sid in self.run_list[team['team_id']]:
-            sid = int(sid)
+        for entry in self.run_list[team['team_id']]:
+            sid = int(entry["id"])
             s = self.scripts[sid]
             srvid = s['service_id']
             if srvid in ss:
-                ss[srvid].append(sid)
+                ss[srvid].append(entry)
             else:
-                ss[srvid] = [sid]
+                ss[srvid] = [entry]
 
         # randomize delay
         for srvid, slist in ss.iteritems():
             # per service
-            slock = Event()
-            slock.set()
-            self.locks.append(slock)
+            setflag_lock = Event()
+            setflag_lock.set()
+            self.setflag_locks[srvid] = setflag_lock
             rlist = self.get_rand_delay(slist)
-            for sid, delay in rlist:
-                p = self.update_script(team['team_id'], sid, self.scripts[sid]['is_bundle'])
-                if p is None:
-                    continue
-                s = self.scripts[sid]
-                ip = self.service_locations[team['team_id']][s['service_id']][0]
-                port = self.service_locations[team['team_id']][s['service_id']][1]
-                self.runscript(slock, team['team_id'], sid, s['service_id'],
-                               SCRIPT_TIMEOUT, s['type'], p, ip, port, delay)
+            for entry, delay in rlist:
+                if entry["type"] == "script":
+                    sid = entry["id"]
+                    p = self.update_script(team['team_id'], sid, self.scripts[sid]['is_bundle'])
+                    if p is None:
+                        continue
+                    s = self.scripts[sid]
+                    ip = self.service_locations[team['team_id']][s['service_id']][0]
+                    port = self.service_locations[team['team_id']][s['service_id']][1]
+                    locks = [setflag_lock]
+                    if s['type'] == 'getflag' and srvid in self.getflag_locks:
+                        locks = locks + self.getflag_locks[srvid]
 
-    def runscript(self, slock, team_id, script_id, service_id, timeout, script_type,
+                    self.runscript(locks, team['team_id'], sid, s['service_id'],
+                                   SCRIPT_TIMEOUT, s['type'], p, ip, port, delay)
+                elif entry["type"] == "exploit_container":
+                    getflag_lock = Event()
+                    getflag_lock.set()
+                    if srvid in self.getflag_locks:
+                        self.getflag_locks[srvid].append(getflag_lock)
+                    else:
+                        self.getflag_locks = [getflag_lock]
+
+    def runscript(self, slocks, team_id, script_id, service_id, timeout, script_type,
                   script_path, ip, port, delay):
 
         service_name = self.services[service_id]['service_name']
         sandbox_user = self.get_sandbox_user_name(team_id)
-        se = ScriptExec(slock, team_id, sandbox_user, script_id, service_id,
+        se = ScriptExec(slocks, team_id, sandbox_user, script_id, service_id,
                         service_name, timeout, script_type, script_path, ip, port,
                         delay)
         self.process_list.append(se)
@@ -758,7 +780,7 @@ class Scheduler:
         self.status['script_err'] = None
         self.status['last_error'] = None
 
-        self.locks = []
+        self.setflag_locks = {}
 
         for p in self.process_list:
             if p.is_alive():
