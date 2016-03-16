@@ -13,6 +13,7 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 import urllib
 from multiprocessing import Array, Event, Process, Value
 
@@ -99,6 +100,7 @@ class DBClient:
             return ret
         except Exception as e:
             self.log.error(ERROR_DB[1]+' get_state(): Exception: '+str(e)+'. Response: '+r)
+            self.log.error(traceback.format_exc())
 
     def get_teams(self):
         try:
@@ -110,6 +112,7 @@ class DBClient:
             return ret
         except Exception as e:
             self.log.error(ERROR_DB[1] + ' get_teams(): Exception: ' + str(e) + '. Response: ' + r)
+            self.log.error(traceback.format_exc())
 
     def get_services(self):
         try:
@@ -122,6 +125,7 @@ class DBClient:
         except Exception as e:
             self.log.error(ERROR_DB[1] + ' get_services(): Exception: ' + str(e) +
                            '. Response: ' + r)
+            self.log.error(traceback.format_exc())
 
     def get_flag(self, team_id, service_id):
         if TEST:
@@ -138,6 +142,7 @@ class DBClient:
 
         except Exception as e:
             self.log.error(ERROR_DB[1] + ' get_flag(): Exception: ' + str(e))
+            self.log.error(traceback.format_exc())
             return None
 
     def set_cookie(self, flag, flag_id, cookie):
@@ -155,6 +160,7 @@ class DBClient:
             return ret
         except Exception as e:
             self.log.error(ERROR_DB[1] + ' set_cookies(). Exception: ' + str(e))
+            self.log.error(traceback.format_exc())
             return None
 
     def get_current_flag(self, team_id, service_id):
@@ -177,6 +183,7 @@ class DBClient:
         except Exception as e:
             self.log.error(ERROR_DB[1] + " get_current_flag(%d,%d): Exception: %s" %
                            (team_id, service_id, str(e)))
+            self.log.error(traceback.format_exc())
             return None, None, None
 
     def push_result(self, team_id, script_id, result):
@@ -200,6 +207,7 @@ class DBClient:
             self.log.error((ERROR_DB[1] + "push_result(team_id:%d,script_id:%d," +
                             "result:%s):Exception:%s ") %
                            (team_id, script_id, str(result), str(e)))
+            self.log.error(traceback.format_exc())
             return None
 
     def get_script(self, script_id):
@@ -216,6 +224,7 @@ class DBClient:
             msg = ERROR_DB[1] + " get_script(%d): Excpetion: %s. DB response: %s" % \
                 (script_id, str(e), ret)
             self.log.error(msg)
+            self.log.error(traceback.format_exc())
 
     def update_status_db(self, team_id, service_id, status, reason):
         # Make a request to /setservicestate/<teamid>/<serviceid>
@@ -236,6 +245,7 @@ class DBClient:
         except Exception as e:
             self.log.error((ERROR_DB[1] + " update_status_db(%s): Exception: %s") %
                            (str((team_id, service_id, status, reason)), str(e)))
+            self.log.error(traceback.format_exc())
             return None
 
 
@@ -335,6 +345,7 @@ class ScriptExec(Process):
             msg = ERROR_SCRIPT_EXECUTION[1] + " Exception at ScriptExec.get_args(): " \
                 + str(e) + ' | Script Object:' + str(self.get_status())
             self.log.error(msg)
+            self.log.error(traceback.format_exc())
             self.result = {'ERROR': ERROR_SCRIPT_EXECUTION[0],
                            'ERROR_MSG': msg}
             self.args = None
@@ -369,6 +380,7 @@ class ScriptExec(Process):
                             result['ERROR_MSG'] = ERROR_WRONG_FLAG[1]+error_msg
         except Exception as e:
             self.log.error('Exception:' + str(e))
+            self.log.error(traceback.format_exc())
             result = {'ERROR': ERROR_SCRIPT_EXECUTION[0],
                       'ERROR_MSG': ERROR_SCRIPT_EXECUTION[1] + " Exception at " +
                       "ScriptExec.push_result(): " + str(e) + ' | Script Object:' +
@@ -571,6 +583,7 @@ class Scheduler:
         except Exception as e:
             msg = 'update_state:Exception:'+str(e)
             self.log.error(msg)
+            self.log.error(traceback.format_exc())
             self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
         return
 
@@ -605,6 +618,7 @@ class Scheduler:
         except Exception as e:
             msg = 'update_script_repo:Exception:' + str(e)
             self.log.error(msg)
+            self.log.error(traceback.format_exc())
             self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
             return None
 
@@ -635,6 +649,7 @@ class Scheduler:
         except Exception as e:
             msg = 'update_script:Exception:' + str(e)
             self.log.error(msg)
+            self.log.error(traceback.format_exc())
             self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
             return None
 
@@ -825,6 +840,7 @@ class Scheduler:
         except Exception as e:
             msg = 'schedule_scripts:Exception:' + str(e)
             self.log.error(msg)
+            self.log.error(traceback.format_exc())
             self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
 
         for i, t in self.teams.iteritems():
@@ -834,6 +850,7 @@ class Scheduler:
             except Exception as e:
                 msg = 'schedule_scripts:Exception:' + str(e)
                 self.log.error(msg)
+                self.log.error(traceback.format_exc())
                 self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
         return
 
@@ -855,6 +872,7 @@ class Scheduler:
             except Exception as e:
                 msg = 'run:Exception:' + str(e)
                 self.log.error(msg)
+                self.log.error(traceback.format_exc())
                 self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
             finally:
                 self.update_status()
