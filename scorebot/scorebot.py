@@ -488,7 +488,7 @@ class Scheduler:
         self.process_list = []
         self.db = DBClient()
         self.setflag_locks = {}
-        self.getflag_locks = {}
+        self.exploit_locks = {}
 
         self.status = {'state_id': 'INIT', 'last_error': None, 'script_err': None,
                        'script_ok': 0, 'script_fail': 0, 'script_tot': 0}
@@ -723,18 +723,18 @@ class Scheduler:
                     ip = self.service_locations[team['team_id']][s['service_id']][0]
                     port = self.service_locations[team['team_id']][s['service_id']][1]
                     locks = [setflag_lock]
-                    if s['type'] == 'getflag' and srvid in self.getflag_locks:
-                        locks = locks + self.getflag_locks[srvid]
+                    if s['type'] == 'getflag' and srvid in self.exploit_locks:
+                        locks = locks + self.exploit_locks[srvid]
 
                     self.runscript(locks, team['team_id'], sid, s['service_id'],
                                    SCRIPT_TIMEOUT, s['type'], p, ip, port, delay)
                 elif entry["type"] == "exploit_container":
-                    getflag_lock = Event()
-                    getflag_lock.set()
-                    if srvid in self.getflag_locks:
-                        self.getflag_locks[srvid].append(getflag_lock)
+                    exploit_lock = Event()
+                    exploit_lock.set()
+                    if srvid in self.exploit_locks:
+                        self.exploit_locks[srvid].append(exploit_lock)
                     else:
-                        self.getflag_locks = [getflag_lock]
+                        self.exploit_locks = [exploit_lock]
 
     def runscript(self, slocks, team_id, script_id, service_id, timeout, script_type,
                   script_path, ip, port, delay):
