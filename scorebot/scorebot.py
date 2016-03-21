@@ -477,10 +477,13 @@ class ScriptExec(Process):
 
 
 class ExploitContainerExec(Process):
-    def __init__(self, setflag_lock, exploit_lock, host, namespace, image, attacker,
-                 defender, service_id, ip, port, delay):
-        self.attacker_team_id = attacker
-        self.defender_team_id = defender
+    def __init__(self, setflag_lock, exploit_lock, host, namespace, image,
+                 attacker_id, attacker_name, defender_id, defender_name, service_id,
+                 service_name, ip, port, delay):
+        self.attacker_name = attacker_name
+        self.attacker_team_id = attacker_id
+        self.defender_name = defender_name
+        self.defender_team_id = defender_id
         self.delay = delay
         self.exploit_lock = exploit_lock
         self.container_host = host
@@ -488,13 +491,15 @@ class ExploitContainerExec(Process):
         self.log = logging.getLogger('__ExploitContainerExec__')
         self.namespace = namespace
         self.service_id = service_id
+        self.service_name = service_name
         self.setflag_lock = setflag_lock
         self.target_host = ip
         self.target_port = port
         self.script_type = "exploit_container"
 
         super(ExploitContainerExec, self).__init__()
-        self.log.info("Acquiring exploit lock in init")
+        self.log.info("Acquiring exploit lock in init. Service: %s, team: %s" %
+                      (self.service_name, self.defender_name))
         self.exploit_lock.clear()
         return
 
@@ -506,25 +511,30 @@ class ExploitContainerExec(Process):
         return s
 
     def get_current_flag_id(self):
+        self.log.info("Obtaining latest flag ID for service %s, team %s" %
+                      (self.service_name, self.defender_name))
         param = urllib.urlencode({'secret': DB_SECRET})
         url = 'http://%s/getlatestflagandcookie/%d/%d?%s' % \
               (DB_HOST, int(self.defender_team_id), int(self.service_id), param)
         o = urllib.urlopen(url).read()
         ret = json.loads(o)
         if ret is None:
-            self.log.error('No flag found for service %d team %d.' %
-                           int(self.service_id), int(self.defender_team_id))
+            self.log.error('No flag found for service %s, team %s.' %
+                           (self.service_name, self.defender_name))
             return None
 
-        self.log.info('/getlatestflagandcookie returned %s' % (str(ret)))
+        self.log.info('/getlatestflagandcookie for service %s of team %s returned %s'
+                      % (self.service_name, self.defender_name, str(ret)))
         return ret['flag_id']
 
     def run(self):
-        self.log.info("Waiting on setflag lock")
+        self.log.info("Waiting on setflag lock. Service %s, attacker %s defender %s"
+                      % (self.service_name, self.attacker_name, self.defender_name))
         self.setflag_lock.wait()
         self.log.info("Setflag lock released. Fetching current flag ID.")
         flag_id = self.get_current_flag_id()
-        self.log.info("Flag ID is %s" % (flag_id))
+        self.log.info("Service: %s, team: %s, flag ID is %s." %
+                      (self.service_name, self.defender_name, flag_id))
         if flag_id is not None:
             args = [SANDBOX_PYTHON_PATH, EXPLOIT_RUNNER, self.container_host,
                     self.namespace, self.image, self.target_host,
@@ -542,9 +552,11 @@ class ExploitContainerExec(Process):
             else:
                 self.log.info("Container runner returned %d" % (exit_code))
         else:
-            self.log.error("Flag ID not found!")
+            self.log.error("Flag ID not found! Team: %s, service: %s" %
+                           (self.defender_name, self.service_name))
 
-        self.log.info("Releasing exploit lock")
+        self.log.info("Releasing exploit lock. service %s, defender %s" %
+                      (self.service_name, self.defender_name))
         self.exploit_lock.set()
         return
 
@@ -859,9 +871,13 @@ class Scheduler:
                               namespace, image, attacker_id, defender_id, service_id,
                               service_ip, service_port, delay):
         self.log.info("Running exploit container")
+        attacker_name = self.teams[attacker_id]["team_name"]
+        defender_name = self.teams[defender_id]["team_name"]
+        service_name = self.services[service_id]["service_name"]
         ce = ExploitContainerExec(setflag_lock, exploit_lock, container_host,
-                                  namespace, image, attacker_id, defender_id,
-                                  service_id, service_ip, service_port, delay)
+                                  namespace, image, attacker_id, attacker_name,
+                                  defender_id, defender_name, service_id,
+                                  service_name, service_ip, service_port, delay)
         self.process_list.append(ce)
         ce.start()
         return
