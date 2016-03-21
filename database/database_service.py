@@ -44,8 +44,10 @@ def current_state():
     c.execute("""select team_id, service_id, host_ip, host_port from services_locations;""")
     result['locations'] = c.fetchall()
 
-    c.execute("""select id from game limit 1""")
-    result['game_id'] = c.fetchone()['id']
+    c.execute("""select id, exploit_containers_host from game limit 1""")
+    record = c.fetchone()
+    result['game_id'] = record['id']
+    result['exploit_containers_host'] = record['exploit_containers_host']
 
     # need to decide what scripts to run
 
@@ -72,6 +74,12 @@ def current_state():
                             'run_list': list_of_services})
 
     result['run_scripts'] = run_scripts
+
+    c.execute("""select id, name, registry_namespace, image_name, team_id, service_id
+              from containers where type='exploit'""")
+
+    result['exploit_containers'] = c.fetchall()
+
     return json.dumps(result)
 
 
@@ -530,6 +538,32 @@ def container_changed():
 
     mysql.get_db().commit()
     return "OK"
+
+
+@app.route("/ranexploit/")
+def ran_exploit():
+    secret = request.args.get('secret')
+
+    if secret != DB_SECRET:
+        abort(401)
+
+    attack_success = bool(request.args.get('attack_success'))
+    attacking_team = int(request.args.get('attacker'))
+    defending_team = int(request.args.get('defender'))
+    service_id = int(request.args.get('service_id'))
+    stdout = request.args.get('stdout')
+    stderr = request.args.get('stderr')
+
+    c = mysql.get_db().cursor()
+    c.execute("""insert into exploits_status(service_id, defending_team_id,
+              attacking_team_id, is_attack_success, exploit_stdout,
+              exploit_stderr) values (%s, %s, %s, %s, %s, %s)""",
+              (service_id, defending_team, attacking_team, attack_success, stdout,
+               stderr))
+
+    mysql.get_db().commit()
+
+    return json.dumps({'result': 'great success'})
 
 
 def get_uptime_for_team(team_id, c):

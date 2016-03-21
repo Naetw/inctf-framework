@@ -207,8 +207,8 @@ def get_list_of_scripts_and_exploits_to_run(c, service_ids, num_benign_scripts):
     scripts_and_exploits_to_run.extend(set_flag_scripts)
 
     c.execute("""select id from containers where type='exploit'""")
-    exploit_containers = [{"id": the_id, "type": "exploit_container"} for c_id in
-                          c.fetchall()]
+    exploit_containers = [{"id": result["id"], "type": "exploit_container"} for
+                          result in c.fetchall()]
 
     other_scripts = []
     other_scripts.extend(exploit_containers)
