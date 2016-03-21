@@ -514,8 +514,8 @@ class ExploitContainerExec(Process):
         o = urllib.urlopen(url).read()
         ret = json.loads(o)
         if ret is None:
-            self.log.info('No flag found for service %d team %d.' %
-                          int(self.service_id), int(self.defender_team_id))
+            self.log.error('No flag found for service %d team %d.' %
+                           int(self.service_id), int(self.defender_team_id))
             return None
 
         self.log.info('/getlatestflagandcookie returned %s' % (str(ret)))
