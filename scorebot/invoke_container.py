@@ -77,8 +77,8 @@ def main():
         # Wait till container times out
         exit_code = client.wait(container, WAIT_TIMEOUT)
         logger.info("Container exited with code %d" % (exit_code))
-        stdout = client.logs(container=container, stdout=True, stderr=False)
-        stderr = client.logs(container=container, stderr=True, stdout=False)
+        stdout = client.logs(container=container, stdout=True, stderr=False).strip()
+        stderr = client.logs(container=container, stderr=True, stdout=False).strip()
         logger.info("stdout: %s" % (stdout))
         logger.info("stderr: %s" % (stderr))
         flag = stdout.strip()
