@@ -13,12 +13,14 @@ import urllib
 import docker
 import requests
 
-DB_SECRET = "YOUKNOWSOMETHINGYOUSUCK"
+# Imports from current project
+from settings import DB_HOST, DB_SECRET
+
 DOCKER_REGISTRY_SERVER = "localhost:5000"
 KILL_TIMEOUT = 20  # seconds
 LOG_PATH = "/tmp/container-invoker.log"
 REMOTE_DOCKER_PORT = 2375
-SUBMIT_SERVER = "localhost:4000"
+SUBMIT_SERVER = DB_HOST
 STATUS_SERVER = SUBMIT_SERVER
 WAIT_TIMEOUT = 60  # seconds
 
