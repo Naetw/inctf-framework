@@ -21,7 +21,7 @@ services_dir = os.path.realpath(os.path.join(os.pardir, "services"))
 
 
 def read_script(service, script):
-    fh = open(os.path.join(services_dir, service, "scripts", script))
+    fh = open(os.path.join(services_dir, service, script))
     service = base64.b64encode(fh.read())
     fh.close()
     return service

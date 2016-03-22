@@ -163,7 +163,7 @@ def generate_scripts_config(services):
         for key in ["getflag", "setflag"]:
             script_config = {}
             script_config["type"] = key
-            script_config["name"] = os.path.basename(service[key])
+            script_config["name"] = service[key]
             script_config["service"] = service["name"]
             script_config["is_working"] = 1
             configs.append(script_config)
@@ -171,7 +171,7 @@ def generate_scripts_config(services):
         for script in service["benign"]:
             script_config = {}
             script_config["type"] = "benign"
-            script_config["name"] = os.path.basename(script)
+            script_config["name"] = script
             script_config["service"] = service["name"]
             script_config["is_working"] = 1
             configs.append(script_config)
