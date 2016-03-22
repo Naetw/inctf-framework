@@ -1,7 +1,7 @@
 {
-    "num_services": 2,
+    "num_services": 5,
     "name": "Test CTF",
-    "services": ["driller", "poipoi"],
+    "services": ["driller", "poipoi", "sillybox", "tattletale", "temperature"],
     "sudo": true,
     "teams": [
         {
