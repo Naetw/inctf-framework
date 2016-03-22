@@ -4,11 +4,12 @@ Priority: extra
 Maintainer: UCSB iCTF 2013 Team <ctf-admin@lists.cs.ucsb.edu>
 Build-Depends: debhelper (>= 8)
 Standards-Version: 3.9.4
+X-Python-Version: >= 2.7
 Homepage: http://ictf.cs.ucsb.edu
 
 Package: temperature
 Architecture: i386
-Depends: ${shlibs:Depends}, ${misc:Depends}, adduser
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser, python
 Description: temperature service for the 2013 UCSB iCTF
  NOTE: this service is initially vulnerable - other teams can steal your flags!
  .
