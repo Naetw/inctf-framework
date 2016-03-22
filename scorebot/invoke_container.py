@@ -118,11 +118,12 @@ def main():
         response = json.loads(r)
         team_logger.info("Submit response: %s" % (r))
         if response["result"] == "correct":
-            team_logger.info("Success!")
+            team_logger.info("Flag accepted!")
             attack_success = True
         else:
-            team_logger.info("Failure!")
+            team_logger.info("Flag not accepted! Reason: %s" % (response["result"]))
             attack_success = False
+
         team_logger.info("Inserting exploit status into DB")
         params = {
             'secret': DB_SECRET,
