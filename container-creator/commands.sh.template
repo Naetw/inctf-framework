@@ -4,7 +4,7 @@ apt-get dist-upgrade -y
 apt-get autoremove -y
 dpkg -i /tmp/{deb_file}
 rm /tmp/{deb_file}
-apt-get -f install
+apt-get -f install -y
 apt-get clean
 {post_install}
 rm $0
