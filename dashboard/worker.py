@@ -57,7 +57,10 @@ class RedisUpdater(object):
         return
 
     def ctf_services_status(self):
-        pass
+        url = '/'.join([self.api_url, "getservicesstate"])
+        r = requests.get(url, params=self.params)
+        self.store_redis('ctf_services_status', json.dumps(r.json()["teams"]))
+        return
 
     def ctf_teams(self):
         pass
