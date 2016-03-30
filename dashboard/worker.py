@@ -28,7 +28,8 @@ class RedisUpdater(object):
         pass
 
     def store_redis(self, key, value):
-        pass
+        self.redis_client.set(key, value)
+        return
 
 
 def main():
