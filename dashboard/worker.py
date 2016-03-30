@@ -63,10 +63,35 @@ class RedisUpdater(object):
         return
 
     def ctf_teams(self):
-        pass
+        url = '/'.join([self.api_url, "getgameinfo"])
+        r = requests.get(url, params=self.params)
+        teams_data = r.json()["teams"]
+        teams = {}
+        for team_data in teams_data:
+            team_id = int(team_data["team_id"])
+            teams[team_id] = {"team_id": team_id,
+                              "team_name": team_data["team_name"]}
+
+        self.store_redis('ctf_teams', json.dumps(teams))
+        return
 
     def ctf_scores(self):
-        pass
+        url = '/'.join([self.api_url, "getgameinfo"])
+        r = requests.get(url, params=self.params)
+        teams_data = r.json()["teams"]
+        teams_names = {}
+        for team_data in teams_data:
+            teams_names[team_data["team_id"]] = team_data["team_name"]
+
+        url = '/'.join([self.api_url, "scores"])
+        r = requests.get(url, params=self.params)
+        scores_data = r.json()["scores"]
+        scores = {}
+        for team in scores_data:
+            team_id = int(team)
+            scores[teams_names[team_id]] = scores_data[team]
+
+        self.store_redis('ctf_scores', json.dumps(scores))
 
     def store_redis(self, key, value):
         self.redis_client.set(key, value)
