@@ -3,6 +3,7 @@
 
 # Standard library imports
 import json
+import time
 
 # Imports from third party packages
 import redis
@@ -106,8 +107,12 @@ def main():
     redis_updater = RedisUpdater(config["api_base_url"], config["api_secret"])
     methods_to_run = [member for member in dir(redis_updater) if
                       member.startswith("ctf_") and '__func__' in dir(member)]
-    for method in methods_to_run:
-        getattr(redis_updater, method)()
+    while True:
+        for method in methods_to_run:
+            print("Refreshing %s" % (method))
+            getattr(redis_updater, method)()
+
+        time.sleep(REFRESH_INTERVAL)
 
 
 if __name__ == "__main__":
