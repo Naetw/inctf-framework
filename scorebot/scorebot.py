@@ -528,6 +528,8 @@ class ExploitContainerExec(Process):
         return ret['flag_id']
 
     def run(self):
+        self.log.info("Sleeping")
+        time.sleep(self.delay)
         self.log.info("Waiting on setflag lock. Service %s, attacker %s defender %s"
                       % (self.service_name, self.attacker_name, self.defender_name))
         self.setflag_lock.wait()
@@ -765,21 +767,26 @@ class Scheduler:
         d = []
         last_delay = None
         for i, entry in enumerate(run_list):
-            sid = entry["id"]
             # DELAY = INTERVAL +- RANDOMIZED_DELAY
             delay = i * interval + (interval - random.gauss(interval, SIGMA_FACTOR *
                                                             (interval)))
             delay = abs(delay)
-            stype = self.scripts[sid]['type']
-            if stype == 'setflag':
-                last_delay = delay
-            if stype == 'getflag':
-                if last_delay is not None:
-                    if (delay-last_delay) < SET_GET_FLAG_TIME_DIFFERENCE_MIN:
-                        self.log.info(('delay (%.2f) - last_delay (%.2f) < ' +
-                                      'SET_GET_FLAG_TIME_DIFFERENCE_MIN (%.2f)') %
-                                      (delay, last_delay, SET_GET_FLAG_TIME_DIFFERENCE_MIN))
-                        delay = last_delay + SET_GET_FLAG_TIME_DIFFERENCE_MIN
+            if entry["type"] == "script":
+                sid = entry["id"]
+                stype = self.scripts[sid]['type']
+                if stype == 'setflag':
+                    last_delay = delay
+                if stype == 'getflag':
+                    if last_delay is not None:
+                        if (delay-last_delay) < SET_GET_FLAG_TIME_DIFFERENCE_MIN:
+                            self.log.info(('delay (%.2f) - last_delay (%.2f) < ' +
+                                           'SET_GET_FLAG_TIME_DIFFERENCE_MIN (%.2f)') %
+                                          (delay, last_delay,
+                                           SET_GET_FLAG_TIME_DIFFERENCE_MIN))
+                            delay = last_delay + SET_GET_FLAG_TIME_DIFFERENCE_MIN
+            elif entry["type"] != "exploit_container":
+                self.log.error("Unknown entry of type %s in run_list" % (entry["type"]))
+
             d.append(delay)
 
         return zip(run_list, d)
