@@ -106,7 +106,8 @@ def main():
     fh.close()
     redis_updater = RedisUpdater(config["api_base_url"], config["api_secret"])
     methods_to_run = [member for member in dir(redis_updater) if
-                      member.startswith("ctf_") and '__func__' in dir(member)]
+                      member.startswith("ctf_") and '__func__' in
+                      dir(getattr(redis_updater, member))]
     while True:
         for method in methods_to_run:
             print("Refreshing %s" % (method))
