@@ -477,6 +477,7 @@ def container_changed():
         app.logger.error("Got invalid secret: %s. Aborting." % (secret))
         abort(401)
 
+    known_container_types = ["exploit", "service"]
     callback_content = json.loads(request.get_data())
     events = callback_content['events']
     app.logger.info("Got %d events" % (len(events)))
@@ -488,6 +489,11 @@ def container_changed():
         namespace, image_name = event['target']['repository'].split('/')
         curr_digest = event['target']['digest']
         container_type = image_name.split('_')[0]
+        if container_type not in known_container_types:
+            app.logger.warn("Unknown type %s. Namespace: %s, image_name: %s" %
+                            (container_type, namespace, image_name))
+            continue
+
         app.logger.info("Namespace: %s, image_name: %s, type: %s" % (namespace,
                         image_name, container_type))
         c = mysql.get_db().cursor()
@@ -511,10 +517,20 @@ def container_changed():
                 container_name = '_'.join([image_name, team_name])
                 c.execute("""SELECT id FROM teams where team_name = %s""",
                           (team_name, ))
-                team_id = c.fetchone()["id"]
+                result = c.fetchone()
+                if result is None:
+                    app.logger.warning("No team with name %s found" % (team_name))
+                    continue
+
+                team_id = result["id"]
                 c.execute("""SELECT id FROM services where name = %s""",
                           (service_name, ))
-                service_id = c.fetchone()["id"]
+                result = c.fetchone()
+                if result is None:
+                    app.logger.warning("No service with name %s found" % (service_name))
+                    continue
+
+                service_id = result["id"]
                 values = (container_name, namespace, image_name, team_id, service_id,
                           "EXPLOIT")
                 c.execute("""INSERT INTO containers(name, registry_namespace,
