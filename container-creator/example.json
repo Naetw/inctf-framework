@@ -6,11 +6,11 @@
     "teams": [
         {
             "name": "team1",
-            "namespace": "namespace_team1"
+            "namespace": "team1"
         },
         {
             "name": "team2",
-            "namespace": "namespace_team2"
+            "namespace": "team2"
         }
     ],
     "flag_storage_folder": "/flags",

@@ -512,7 +512,7 @@ def container_changed():
                 # Exploit container was created just now. Insert into DB and continue.
                 app.logger.warning("""Creating exploit container entry for %s""" %
                                    (image_name))
-                team_name = namespace.split('_')[1]
+                team_name = namespace
                 service_name = image_name.split('_')[1]
                 container_name = '_'.join([image_name, team_name])
                 c.execute("""SELECT id FROM teams where team_name = %s""",
