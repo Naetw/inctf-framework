@@ -5,7 +5,6 @@
 # Standard library imports
 import json
 import logging
-import os
 import sys
 import urllib
 
@@ -94,7 +93,7 @@ def main():
 
     env_vars = {"TARGET_HOST": str(target_host), "TARGET_PORT": str(target_port),
                 "FLAG_ID": str(flag_id)}
-    container_image = os.path.join(DOCKER_REGISTRY_SERVER, namespace, image)
+    container_image = '/'.join([DOCKER_REGISTRY_SERVER, namespace, image])
 
     # Create container with service IP and PORT in env variables and start container.
     container = client.create_container(image=container_image, environment=env_vars)
