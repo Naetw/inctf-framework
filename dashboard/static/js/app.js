@@ -10,19 +10,19 @@ ctfApp.config(['$routeProvider',
   function($routeProvider) {
     $routeProvider.
       when('/services', {
-        templateUrl: 'partials/services.html',
+        templateUrl: 'static/partials/services.html',
         controller: 'ServicesCtrl'
       }).
       when('/submit_flag', {
-        templateUrl: 'partials/submit_flag.html',
+        templateUrl: 'static/partials/submit_flag.html',
         controller: 'FlagCtrl'
       }).
       when('/scoreboard', {
-        templateUrl: 'partials/scoreboard.html',
+        templateUrl: 'static/partials/scoreboard.html',
         controller: 'ScoreboardCtrl'
       }).
       when('/welcome', {
-        templateUrl: 'partials/welcome.html',
+        templateUrl: 'static/partials/welcome.html',
         controller: 'ConfigCtrl'
       }).
       otherwise({
