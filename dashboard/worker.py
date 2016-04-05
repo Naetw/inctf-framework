@@ -21,38 +21,19 @@ class RedisUpdater(object):
         self.redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     def ctf_services(self):
-        url = '/'.join([self.api_url, "getlatestflagids"])
-        flag_ids = requests.get(url, self.params).json()["flag_ids"]
         services = {}
-        for team in flag_ids:
-            team_id = int(team)
-            for service in flag_ids[team]:
-                service_id = int(service)
-                flag_id_info = {"flag_id": flag_ids[team][service],
-                                "team_id": team_id}
-
-                if service_id not in services:
-                    services[service_id] = {}
-
-                if "flag_id" not in services[service_id]:
-                    services[service_id]["flag_id"] = {}
-
-                if "flag_ids" not in services[service_id]["flag_id"]:
-                    services[service_id]["flag_id"]["flag_ids"] = []
-
-                services[service_id]["flag_id"]["flag_ids"].append(flag_id_info)
-
         url = '/'.join([self.api_url, 'getgameinfo'])
         services_info = requests.get(url, params=self.params).json()['services']
         for service_info in services_info:
             service_id = service_info['service_id']
+            if service_id not in services:
+                services[service_id] = {}
+
             services[service_id]['description'] = service_info['description']
             services[service_id]['port'] = service_info['internal_port']
             services[service_id]['name'] = service_info['service_name']
-            services[service_id]['flag_id']['description'] = \
-                service_info['flag_id_description']
-            services[service_id]['flag_id']['flag_ids'].sort(
-                key=lambda x: x['team_id'])
+            services[service_id]['flag_id'] = \
+                {'description': service_info['flag_id_description']}
 
         self.store_redis('ctf_services', json.dumps(services))
         return
