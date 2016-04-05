@@ -582,6 +582,30 @@ def ran_exploit():
     return json.dumps({'result': 'great success'})
 
 
+@app.route("/exploitlogs")
+def get_exploit_logs():
+    secret = request.args.get('secret')
+
+    if secret != DB_SECRET:
+        abort(401)
+
+    c = mysql.get_db().cursor()
+    c.execute("""select created_on from ticks order by created_on desc limit 1""")
+    result = c.fetchone()
+    if result is not None:
+        tick_start_time = result["created_on"]
+        c.execute("""select service_id, attacking_team_id as attacker_id,
+        defending_team_id as defender_id, is_attack_success as success,
+        exploit_stdout as stdout, exploit_stderr as stderr from exploits_status where
+        created_on > %s""", (tick_start_time, ))
+
+        exploit_details = c.fetchall()
+    else:
+        exploit_details = {}
+
+    return json.dumps({"exploits_logs": exploit_details})
+
+
 def get_uptime_for_team(team_id, c):
 
     c.execute("""select COUNT(id) as count, service_id from team_service_state where

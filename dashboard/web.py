@@ -43,6 +43,13 @@ def get_config():
     return json.dumps({'ctf_name': config['name'], 'team_name': auth.username()})
 
 
+@app.route('/exploitlogs')
+@auth.login_required
+def get_exploit_logs():
+    logs = json.loads(redis_client.get('ctf_exploits'))
+    return json.dumps(logs[auth.username()])
+
+
 @app.route('/scores')
 def get_scores():
     return redis_client.get('ctf_scores')

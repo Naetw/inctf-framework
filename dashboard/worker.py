@@ -77,6 +77,48 @@ class RedisUpdater(object):
         scores.sort(key=lambda x: (x["score"], x['sla']), reverse=True)
         self.store_redis('ctf_scores', json.dumps(scores))
 
+    def ctf_exploits(self):
+        url = '/'.join([self.api_url, "getgameinfo"])
+        r = requests.get(url, params=self.params)
+        teams_data = r.json()["teams"]
+        teams_names = {}
+        for team_data in teams_data:
+            teams_names[team_data["team_id"]] = team_data["team_name"]
+
+        services_data = r.json()["services"]
+        services_names = {}
+        for service_data in services_data:
+            services_names[service_data["service_id"]] = service_data["service_name"]
+
+        url = '/'.join([self.api_url, "exploitlogs"])
+        r = requests.get(url, params=self.params)
+        raw_exploits_logs = r.json()["exploits_logs"]
+        exploits_logs = {}
+        for raw_entry in raw_exploits_logs:
+            attacker = teams_names[raw_entry["attacker_id"]]
+            defender = teams_names[raw_entry["defender_id"]]
+            service = services_names[raw_entry["service_id"]]
+            if attacker not in exploits_logs:
+                exploits_logs[attacker] = {}
+
+            if service not in exploits_logs[attacker]:
+                exploits_logs[attacker][service] = {}
+
+            if raw_entry['success'] == 1:
+                data = {'stdout': "",
+                        'stderr': "",
+                        'success': raw_entry['success']
+                        }
+            else:
+                data = {'stdout': raw_entry['stdout'],
+                        'stderr': raw_entry['stderr'],
+                        'success': raw_entry['success']
+                        }
+            exploits_logs[attacker][service][defender] = data
+
+        self.store_redis('ctf_exploits', json.dumps(exploits_logs))
+        return
+
     def store_redis(self, key, value):
         self.redis_client.set(key, value)
         return
