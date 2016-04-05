@@ -62,7 +62,6 @@ def get_services_status():
     current_team_id = team_ids[auth.username()]
     for state in status:
         if state['team_id'] == current_team_id:
-            print "name: %s, team_id: %d" % (auth.username(), current_team_id)
             for entry in state['services']:
                 result[entry['service_id']] = entry['state']
 
