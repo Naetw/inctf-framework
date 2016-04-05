@@ -21,12 +21,12 @@
                 </tr>
             </thead>
             <tbody>
-                <tr ng-repeat="score in scores | orderBy:'score':true">
+                <tr ng-repeat="score in scores">
                     <td>
                         {{$index + 1}}
                     </td>
                     <td>
-                        {{score.team_name}}
+                        {{score.score['team_name']}}
                     </td>
                     <td>
                         {{score.score['sla']}}

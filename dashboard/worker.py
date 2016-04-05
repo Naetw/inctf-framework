@@ -87,11 +87,13 @@ class RedisUpdater(object):
         url = '/'.join([self.api_url, "scores"])
         r = requests.get(url, params=self.params)
         scores_data = r.json()["scores"]
-        scores = {}
+        scores = []
         for team in scores_data:
             team_id = int(team)
-            scores[teams_names[team_id]] = scores_data[team]
+            scores.append(scores_data[team])
+            scores[-1]["team_name"] = teams_names[team_id]
 
+        scores.sort(key=lambda x: (x["score"], x['sla']), reverse=True)
         self.store_redis('ctf_scores', json.dumps(scores))
 
     def store_redis(self, key, value):
