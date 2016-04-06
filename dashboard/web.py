@@ -47,14 +47,22 @@ def get_config():
 @auth.login_required
 def get_containers_list():
     containers_list = json.loads(redis_client.get('ctf_containers_changed'))
-    return json.dumps(containers_list[auth.username()])
+    team = auth.username()
+    if team in containers_list:
+        return json.dumps(containers_list[auth.username()])
+    else:
+        return json.dumps([])
 
 
 @app.route('/exploitlogs')
 @auth.login_required
 def get_exploit_logs():
     logs = json.loads(redis_client.get('ctf_exploits'))
-    return json.dumps(logs[auth.username()])
+    team = auth.username()
+    if team in logs:
+        return json.dumps(logs[auth.username()])
+    else:
+        return json.dumps([])
 
 
 @app.route('/scores')
