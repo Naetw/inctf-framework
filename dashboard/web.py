@@ -43,6 +43,13 @@ def get_config():
     return json.dumps({'ctf_name': config['name'], 'team_name': auth.username()})
 
 
+@app.route('/updatedcontainers')
+@auth.login_required
+def get_containers_list():
+    containers_list = json.loads(redis_client.get('ctf_containers_changed'))
+    return json.dumps(containers_list[auth.username()])
+
+
 @app.route('/exploitlogs')
 @auth.login_required
 def get_exploit_logs():

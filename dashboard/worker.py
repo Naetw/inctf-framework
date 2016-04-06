@@ -114,6 +114,24 @@ class RedisUpdater(object):
         self.store_redis('ctf_exploits', json.dumps(exploits_logs))
         return
 
+    def ctf_containers_changed(self):
+        url = '/'.join([self.api_url, "changed_containers"])
+        r = requests.get(url, params=self.params)
+        containers_list = r.json()
+        containers_to_update = {}
+        for container in containers_list:
+            team = self.teams_names[container["team_id"]]
+            service = self.services_names[container["service_id"]]
+            if team not in containers_to_update:
+                containers_to_update[team] = [(service, container["type"])]
+            else:
+                containers_to_update[team].append((service, container["type"]))
+
+        for team in containers_to_update:
+            containers_to_update[team].sort()
+
+        self.store_redis('ctf_containers_changed', json.dumps(containers_to_update))
+
     def store_redis(self, key, value):
         self.redis_client.set(key, value)
         return

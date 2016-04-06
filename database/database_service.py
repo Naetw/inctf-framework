@@ -606,6 +606,20 @@ def get_exploit_logs():
     return json.dumps({"exploits_logs": exploit_details})
 
 
+@app.route("/changed_containers")
+def changed_containers():
+    secret = request.args.get('secret')
+
+    if secret != DB_SECRET:
+        abort(401)
+
+    c = mysql.get_db().cursor()
+    c.execute("""select team_id, service_id, type from containers where
+              update_required = True""")
+
+    return json.dumps(c.fetchall())
+
+
 def get_uptime_for_team(team_id, c):
 
     c.execute("""select COUNT(id) as count, service_id from team_service_state where
