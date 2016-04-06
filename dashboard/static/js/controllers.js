@@ -12,6 +12,13 @@ ctfControllers.controller('ServicesCtrl', ['$scope', '$http',
       });
   }]);
 
+ctfControllers.controller('ContainersUpdatedCtrl', ['$scope', '$http',
+  function ($scope, $http) {
+      $http.get('/updatedcontainers').success(function(data) {
+          $scope.containers = data;
+      });
+  }])
+
 ctfControllers.controller('ExploitLogsCtrl', ['$scope', '$http',
   function ($scope, $http) {
       $http.get('/exploitlogs').success(function(data) {

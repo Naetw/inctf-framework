@@ -29,6 +29,10 @@ ctfApp.config(['$routeProvider',
           templateUrl: 'static/partials/exploit_status.html',
           controller: 'ExploitLogsCtrl'
       }).
+      when('/containers_to_update', {
+          templateUrl: 'static/partials/containers_updated.html',
+          controller: 'ContainersUpdatedCtrl'
+      }).
       otherwise({
         redirectTo: '/welcome'
       });
