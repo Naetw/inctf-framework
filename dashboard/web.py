@@ -84,5 +84,10 @@ def get_services_status():
     return json.dumps(result)
 
 
+@app.route('/tick_change_time')
+def get_tick_duration():
+    return redis_client.get('ctf_tick_change_time')
+
+
 if __name__ == "__main__":
     app.run('0.0.0.0', 8000)

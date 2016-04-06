@@ -131,6 +131,14 @@ class RedisUpdater(object):
             containers_to_update[team].sort()
 
         self.store_redis('ctf_containers_changed', json.dumps(containers_to_update))
+        return
+
+    def ctf_tick_change_time(self):
+        url = '/'.join([self.api_url, "state"])
+        r = requests.get(url, params=self.params)
+        time_to_next_tick = r.json()['state_expire']
+        self.store_redis('ctf_tick_change_time', time_to_next_tick)
+        return
 
     def store_redis(self, key, value):
         self.redis_client.set(key, value)
