@@ -12,6 +12,13 @@ ctfControllers.controller('ServicesCtrl', ['$scope', '$http',
       });
   }]);
 
+ctfControllers.controller('ExploitLogsCtrl', ['$scope', '$http',
+  function ($scope, $http) {
+      $http.get('/exploitlogs').success(function(data) {
+          $scope.exploit_logs = data;
+      })
+  }]);
+
 ctfControllers.controller('FlagCtrl', ['$scope', '$http',
   function ($scope, $http) {
       $scope.flag = '';
