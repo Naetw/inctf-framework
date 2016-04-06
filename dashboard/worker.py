@@ -20,10 +20,26 @@ class RedisUpdater(object):
         self.params = {"secret": secret}
         self.redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
+    def helper(self):
+        # Update information that is repeatedly used by ctf_* services
+        url = '/'.join([self.api_url, "getgameinfo"])
+        r = requests.get(url, params=self.params)
+        self.gameinfo = r.json()
+        teams_data = self.gameinfo["teams"]
+        self.teams_names = {}
+        for team_data in teams_data:
+            self.teams_names[team_data["team_id"]] = team_data["team_name"]
+
+        services_data = self.gameinfo["services"]
+        self.services_names = {}
+        for service_data in services_data:
+            self.services_names[service_data["service_id"]] = service_data["service_name"]
+
+        return
+
     def ctf_services(self):
         services = {}
-        url = '/'.join([self.api_url, 'getgameinfo'])
-        services_info = requests.get(url, params=self.params).json()['services']
+        services_info = self.gameinfo['services']
         for service_info in services_info:
             service_id = service_info['service_id']
             if service_id not in services:
@@ -45,9 +61,7 @@ class RedisUpdater(object):
         return
 
     def ctf_teams(self):
-        url = '/'.join([self.api_url, "getgameinfo"])
-        r = requests.get(url, params=self.params)
-        teams_data = r.json()["teams"]
+        teams_data = self.gameinfo["teams"]
         teams = {}
         for team_data in teams_data:
             team_id = int(team_data["team_id"])
@@ -58,13 +72,6 @@ class RedisUpdater(object):
         return
 
     def ctf_scores(self):
-        url = '/'.join([self.api_url, "getgameinfo"])
-        r = requests.get(url, params=self.params)
-        teams_data = r.json()["teams"]
-        teams_names = {}
-        for team_data in teams_data:
-            teams_names[team_data["team_id"]] = team_data["team_name"]
-
         url = '/'.join([self.api_url, "scores"])
         r = requests.get(url, params=self.params)
         scores_data = r.json()["scores"]
@@ -72,32 +79,20 @@ class RedisUpdater(object):
         for team in scores_data:
             team_id = int(team)
             scores.append(scores_data[team])
-            scores[-1]["team_name"] = teams_names[team_id]
+            scores[-1]["team_name"] = self.teams_names[team_id]
 
         scores.sort(key=lambda x: (x["score"], x['sla']), reverse=True)
         self.store_redis('ctf_scores', json.dumps(scores))
 
     def ctf_exploits(self):
-        url = '/'.join([self.api_url, "getgameinfo"])
-        r = requests.get(url, params=self.params)
-        teams_data = r.json()["teams"]
-        teams_names = {}
-        for team_data in teams_data:
-            teams_names[team_data["team_id"]] = team_data["team_name"]
-
-        services_data = r.json()["services"]
-        services_names = {}
-        for service_data in services_data:
-            services_names[service_data["service_id"]] = service_data["service_name"]
-
         url = '/'.join([self.api_url, "exploitlogs"])
         r = requests.get(url, params=self.params)
         raw_exploits_logs = r.json()["exploits_logs"]
         exploits_logs = {}
         for raw_entry in raw_exploits_logs:
-            attacker = teams_names[raw_entry["attacker_id"]]
-            defender = teams_names[raw_entry["defender_id"]]
-            service = services_names[raw_entry["service_id"]]
+            attacker = self.teams_names[raw_entry["attacker_id"]]
+            defender = self.teams_names[raw_entry["defender_id"]]
+            service = self.services_names[raw_entry["service_id"]]
             if attacker not in exploits_logs:
                 exploits_logs[attacker] = {}
 
@@ -134,6 +129,7 @@ def main():
                       member.startswith("ctf_") and '__func__' in
                       dir(getattr(redis_updater, member))]
     while True:
+        redis_updater.helper()
         for method in methods_to_run:
             print("Refreshing %s" % (method))
             getattr(redis_updater, method)()
