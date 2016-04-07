@@ -178,7 +178,7 @@ def run_command_with_shell(cmd):
 
 def recreate_database():
     print "Recreating tables in DB"
-    command = "mysql -u " + MYSQL_DATABASE_USER + " -p" + MYSQL_DATABASE_PASSWORD + " " + \
+    command = "mysql -u " + MYSQL_DATABASE_USER + " -p'" + MYSQL_DATABASE_PASSWORD + "' " + \
               MYSQL_DATABASE_DB + "< database.sql"
     out, err, ret = run_command_with_shell(command)
     if ret != 0:
