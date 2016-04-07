@@ -5,11 +5,13 @@
         <meta content='width=device-width, initial-scale=1' name='viewport'>
         <link href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
         <link href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flipclock/0.7.8/flipclock.css">
         <base href='/'>
         <script src='https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'></script>
         <script src='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js'></script>
         <script src='//ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js'></script>
         <script src='//ajax.googleapis.com/ajax/libs/angularjs/1.2.1/angular-route.min.js'></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/flipclock/0.7.8/flipclock.js"></script>
         <script src={{ url_for('static', filename='js/app.js') }}></script>
         <script src={{ url_for('static', filename='js/controllers.js') }}></script>
     </head>
@@ -54,6 +56,19 @@
                     </li>
                 </div>
             </div>
+            <div align="center">
+                <h3>Current round will end in</h3>
+            </div>
+            <div class="clock" style="margin: 0 auto;max-width: 300px;margin-top: 2em;"></div>
+            <script type="text/javascript">
+                $.getJSON("/tick_change_time", function(time_left){
+                    var clock = $('.clock').FlipClock(time_left, {
+                        countdown: true,
+                        clockFace: 'MinuteCounter'
+                    });
+                    setTimeout(function() {location.reload(false)}, (time_left * 1000));
+                });
+            </script>
             <div class='row-fluid'>
                 <div class='span12'>
                     <div class='ng-view'></div>
