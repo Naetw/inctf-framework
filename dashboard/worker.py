@@ -134,10 +134,9 @@ class RedisUpdater(object):
         return
 
     def ctf_tick_change_time(self):
-        url = '/'.join([self.api_url, "state"])
+        url = '/'.join([self.api_url, "tick_duration"])
         r = requests.get(url, params=self.params)
-        time_to_next_tick = r.json()['state_expire']
-        self.store_redis('ctf_tick_change_time', time_to_next_tick)
+        self.store_redis('ctf_tick_change_time', r.json())
         return
 
     def store_redis(self, key, value):

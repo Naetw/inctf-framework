@@ -620,6 +620,12 @@ def changed_containers():
     return json.dumps(c.fetchall())
 
 
+@app.route("/tick_duration")
+def get_tick_duration():
+    _, seconds_to_next_tick = get_current_tick(mysql.get_db().cursor())
+    return json.dumps(seconds_to_next_tick)
+
+
 def get_uptime_for_team(team_id, c):
 
     c.execute("""select COUNT(id) as count, service_id from team_service_state where
