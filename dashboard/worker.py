@@ -8,7 +8,6 @@ import time
 # Imports from third party packages
 import redis
 import requests
-import yaml
 
 
 REFRESH_INTERVAL = 1  # seconds
@@ -145,9 +144,9 @@ class RedisUpdater(object):
 
 
 def main():
-    config_file = "config.yml"
+    config_file = "config.json"
     fh = open(config_file)
-    config = yaml.load(fh.read())
+    config = json.load(fh)
     fh.close()
     redis_updater = RedisUpdater(config["api_base_url"], config["api_secret"])
     methods_to_run = [member for member in dir(redis_updater) if

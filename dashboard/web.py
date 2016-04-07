@@ -5,16 +5,15 @@
 import json
 
 # Imports from third party packages
-import yaml
 from flask import Flask, render_template
 from flask_httpauth import HTTPBasicAuth
 import redis
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
-config_file = "config.yml"
+config_file = "config.json"
 fh = open(config_file)
-config = yaml.load(fh.read())
+config = json.load(fh)
 fh.close()
 redis_client = redis.StrictRedis(host='localhost', port='6379', db=0)
 

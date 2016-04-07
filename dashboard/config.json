@@ -1,0 +1,15 @@
+{
+    "api_secret": "YOUKNOWSOMETHINGYOUSUCK",
+    "name": "FantastiCTF!",
+    "api_base_url": "http://127.0.0.1:4000",
+    "teams": {
+        "1": {
+            "hashed_password": "hi",
+            "name": "Hi"
+        },
+        "2": {
+            "hashed_password": "hi",
+            "name": "Sheep"
+        }
+    }
+}
