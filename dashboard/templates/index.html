@@ -1,64 +1,64 @@
 <!DOCTYPE html>
 <html ng-app='ctfApp'>
-  <head>
-    <meta charset='utf-8'>
-    <meta content='width=device-width, initial-scale=1' name='viewport'>
-    <link href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
-    <link href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css' rel='stylesheet' type='text/css'>
-    <base href='/'>
-    <script src='https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'></script>
-    <script src='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js'></script>
-    <script src='//ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js'></script>
-    <script src='//ajax.googleapis.com/ajax/libs/angularjs/1.2.1/angular-route.min.js'></script>
-    <script src={{ url_for('static', filename='js/app.js') }}></script>
-    <script src={{ url_for('static', filename='js/controllers.js') }}></script>
-  </head>
-  <body>
-    <div class='container-fluid'>
-      <div class='row-fluid'>
-        <div class='btn-group'>
-          <li class='btn'>
-            <a href='#services'>
-              <h3>
-                Show Services
-              </h3>
-            </a>
-          </li>
-          <li class='btn'>
-            <a href='#submit_flag'>
-              <h3>
-                Submit Flag
-              </h3>
-            </a>
-          </li>
-          <li class='btn'>
-            <a href='#scoreboard'>
-              <h3>
-                View Scoreboard
-              </h3>
-            </a>
-          </li>
-          <li class='btn'>
-            <a href='#exploits_status'>
-              <h3>
-                View status of exploits
-              </h3>
-            </a>
-          </li>
-          <li class='btn'>
-            <a href='#containers_to_update'>
-              <h3>
-                Pending updates
-              </h3>
-            </a>
-          </li>
+    <head>
+        <meta charset='utf-8'>
+        <meta content='width=device-width, initial-scale=1' name='viewport'>
+        <link href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css' rel='stylesheet' type='text/css'>
+        <link href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css' rel='stylesheet' type='text/css'>
+        <base href='/'>
+        <script src='https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'></script>
+        <script src='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js'></script>
+        <script src='//ajax.googleapis.com/ajax/libs/angularjs/1.2.22/angular.min.js'></script>
+        <script src='//ajax.googleapis.com/ajax/libs/angularjs/1.2.1/angular-route.min.js'></script>
+        <script src={{ url_for('static', filename='js/app.js') }}></script>
+        <script src={{ url_for('static', filename='js/controllers.js') }}></script>
+    </head>
+    <body>
+        <div class='container-fluid'>
+            <div class='row-fluid'>
+                <div class='btn-group'>
+                    <li class='btn'>
+                        <a href='#services'>
+                            <h3>
+                                Show Services
+                            </h3>
+                        </a>
+                    </li>
+                    <li class='btn'>
+                        <a href='#submit_flag'>
+                            <h3>
+                                Submit Flag
+                            </h3>
+                        </a>
+                    </li>
+                    <li class='btn'>
+                        <a href='#scoreboard'>
+                            <h3>
+                                View Scoreboard
+                            </h3>
+                        </a>
+                    </li>
+                    <li class='btn'>
+                        <a href='#exploits_status'>
+                            <h3>
+                                View status of exploits
+                            </h3>
+                        </a>
+                    </li>
+                    <li class='btn'>
+                        <a href='#containers_to_update'>
+                            <h3>
+                                Pending updates
+                            </h3>
+                        </a>
+                    </li>
+                </div>
+            </div>
+            <div class='row-fluid'>
+                <div class='span12'>
+                    <div class='ng-view'></div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class='row-fluid'>
-        <div class='span12'>
-          <div class='ng-view'></div>
-        </div>
-      </div>
-    </div>
-  </body>
+    </body>
 </html>
