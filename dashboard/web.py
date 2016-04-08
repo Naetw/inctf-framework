@@ -19,7 +19,7 @@ redis_client = redis.StrictRedis(host='localhost', port='6379', db=0)
 
 team_ids = {}
 for team in config['teams']:
-    team_ids[config['teams'][team]['name']] = team
+    team_ids[config['teams'][team]['name']] = int(team)
 
 
 @auth.get_password
