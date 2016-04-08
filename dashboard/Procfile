@@ -1,2 +1,2 @@
-web: python2 web.py
+web: python2 dashboard_tornado.py
 worker: python2 worker.py

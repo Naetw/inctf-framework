@@ -1,3 +1,6 @@
+backports-abc==0.4
+backports.ssl-match-hostname==3.5.0.1
+certifi==2016.2.28
 Flask==0.10.1
 Flask-HTTPAuth==3.1.1
 honcho==0.6.6
@@ -6,4 +9,7 @@ Jinja2==2.8
 MarkupSafe==0.23
 redis==2.10.5
 requests==2.9.1
+singledispatch==3.4.0.3
+six==1.10.0
+tornado==4.3
 Werkzeug==0.11.5
