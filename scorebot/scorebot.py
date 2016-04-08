@@ -361,10 +361,10 @@ class ScriptExec(Process):
                     if self.flags['flag'] is not None:
                         if self.flags['flag'] != result['FLAG']:
                             # wrong flag
-                            error_msg = 'Getflag(script_id:%d) received WRONG ' + \
-                                'FLAG! true_flag:%s returned_flag: %s' % \
+                            error_msg = ('Getflag(script_id:%d) received WRONG ' +
+                                         'FLAG! true_flag:%s returned_flag: %s') % \
                                 (self.script_id, str(self.flags['flag']),
-                                        str(result['FLAG']))
+                                 str(result['FLAG']))
                             result['ERROR'] = ERROR_WRONG_FLAG[0]
                             result['ERROR_MSG'] = ERROR_WRONG_FLAG[1] + error_msg
 
@@ -372,8 +372,8 @@ class ScriptExec(Process):
                     if self.flags['flag'] is not None:
                         if self.flags['flag'] != result['FLAG']:
                             # wrong flag
-                            error_msg = 'Exploit(script_id:%d) received a WRONG ' + \
-                                        'FLAG! true_flag:%s returned_flag:%s' % \
+                            error_msg = ('Exploit(script_id:%d) received a WRONG ' +
+                                         'FLAG! true_flag:%s returned_flag:%s') % \
                                         (self.script_id, str(self.flags['flag']),
                                          str(result['FLAG']))
                             result['ERROR'] = ERROR_WRONG_FLAG[0]
