@@ -148,7 +148,7 @@ def get_service_containers_needing_update(cursor):
         ret_container["external_port"] = result["host_port"]
 
         cursor.execute("""select internal_port, workdir from services where
-                       id = %s""", (container["service_id"]))
+                       id = %s""", (container["service_id"], ))
         result = cursor.fetchone()
         ret_container["internal_port"] = result["internal_port"]
         ret_container["internal_flag_storage"] = result["workdir"]
@@ -238,7 +238,7 @@ def get_current_tick(c):
               desc limit 1""")
     result = c.fetchone()
     current_tick = 0
-    seconds_left = 1337
+    seconds_left = 0
     if result:
         current_tick = result['id']
         current_time = iso8601.parse_date(datetime.now().isoformat())

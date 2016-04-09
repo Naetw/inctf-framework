@@ -139,8 +139,12 @@ def get_services_state_by_tick(tick_id, c):
     c.execute("""select created_on, time_to_change from ticks where id = %s""",
               (tick_id,))
     result = c.fetchone()
-    tick_start_time = result['created_on']
-    tick_end_time = result['time_to_change']
+    if result is not None:
+        tick_start_time = result['created_on']
+        tick_end_time = result['time_to_change']
+    else:
+        tick_start_time = 0
+        tick_end_time = 0
 
     c.execute("""select id from teams""")
     teams = []
@@ -669,7 +673,7 @@ def get_current_tick(c):
               desc limit 1""")
     result = c.fetchone()
     current_tick = 0
-    seconds_left = 1337
+    seconds_left = 0
     if result:
         current_tick = result['id']
         current_time = iso8601.parse_date(datetime.datetime.now().isoformat())
