@@ -836,13 +836,6 @@ class Scheduler:
                     self.runscript(locks, team['team_id'], sid, s['service_id'],
                                    SCRIPT_TIMEOUT, s['type'], p, ip, port, delay)
                 elif entry["type"] == "exploit_container":
-                    exploit_lock = Event()
-                    exploit_lock.set()
-                    if srvid in self.exploit_locks:
-                        self.exploit_locks[srvid].append(exploit_lock)
-                    else:
-                        self.exploit_locks = [exploit_lock]
-
                     container_id = entry["id"]
                     container = self.exploit_containers[container_id]
                     attacker_id = container["team_id"]
@@ -850,6 +843,13 @@ class Scheduler:
                     if attacker_id == defender_id:
                         # Don't run a team's exploit against itself
                         continue
+
+                    exploit_lock = Event()
+                    exploit_lock.set()
+                    if srvid in self.exploit_locks:
+                        self.exploit_locks[srvid].append(exploit_lock)
+                    else:
+                        self.exploit_locks = [exploit_lock]
 
                     service_ip, service_port = \
                         self.service_locations[team["team_id"]][srvid]
