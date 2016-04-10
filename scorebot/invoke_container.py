@@ -53,8 +53,7 @@ def get_service_name(service_id):
 def main():
     logger.info("Starting exploit")
     arguments = ["CONTAINER_HOST", "CONTAINER_NAMESPACE", "CONTAINER_IMAGE",
-                 "TARGET_IP", "TARGET_PORT", "SERVICE_ID", "CURRENT_FLAG_ID",
-                 "ATTACKER_TEAM_ID", "DEFENDING_TEAM_ID"]
+                 "ATTACKER_TEAM_ID", "SERVICE_ID", "TARGETS"]
     if len(sys.argv) != len(arguments) + 1:
         print "Usage: %s %s" % (sys.argv[0], ' '.join(arguments))
         logger.error("Incorrect argument count. Received %d, expected %d." %
@@ -64,20 +63,21 @@ def main():
     container_host = sys.argv[1]
     namespace = sys.argv[2]
     image = sys.argv[3]
-    target_host = sys.argv[4]
-    target_port = int(sys.argv[5])
-    service_id = int(sys.argv[6])
-    flag_id = sys.argv[7]
-    attacker = int(sys.argv[8])
-    defender = int(sys.argv[9])
-
+    attacker = int(sys.argv[4])
+    service_id = int(sys.argv[5])
     attacker_name = get_team_name(attacker)
-    defender_name = get_team_name(defender)
     service_name = get_service_name(service_id)
-    team_logger = logging.getLogger("__%s_attacking_%s_%s__" %
-                                    (attacker_name, defender_name, service_name))
-    team_logger.info("Image: %s, namespace: %s, location: (%s, %d)" %
-                     (image, namespace, target_host, target_port))
+    team_logger = logging.getLogger("__%s_attacking_%s__" %
+                                    (attacker_name, service_name))
+
+    try:
+        targets = json.loads(sys.argv[6])
+    except ValueError:
+        team_logger.error("Invalid JSON targets string: %s" % (sys.argv[6]))
+        sys.exit(1)
+
+    team_logger.info("Image: %s, namespace: %s, targets: %s" %
+                     (image, namespace, json.dumps(targets)))
     max_connect_retries = 3
     url = "tcp://%s:%d" % (container_host, REMOTE_DOCKER_PORT)
     team_logger.info("Remote Docker URL: %s" % (url))
@@ -91,69 +91,77 @@ def main():
                           (container_host, REMOTE_DOCKER_PORT))
         sys.exit(1)
 
-    env_vars = {"TARGET_HOST": str(target_host), "TARGET_PORT": str(target_port),
-                "FLAG_ID": str(flag_id)}
-    container_image = '/'.join([DOCKER_REGISTRY_SERVER, namespace, image])
+    for target in targets:
+        env_vars = {"TARGET_HOST": target["ip"], "TARGET_PORT": target["port"],
+                    "FLAG_ID": target["flag_id"]}
+        container_image = '/'.join([DOCKER_REGISTRY_SERVER, namespace, image])
 
-    # Create container with service IP and PORT in env variables and start container.
-    container = client.create_container(image=container_image, environment=env_vars)
-    team_logger.info("Create container returned %s" % (container))
-    client.start(container["Id"])
+        # Create container with service IP and PORT in env variables and start container.
+        container = client.create_container(image=container_image, environment=env_vars)
+        team_logger.info("Create container returned %s" % (container))
+        client.start(container["Id"])
 
-    try:
-        # Wait till container times out
-        exit_code = client.wait(container, WAIT_TIMEOUT)
-        team_logger.info("Container exited with code %d" % (exit_code))
-        stdout = client.logs(container=container, stdout=True, stderr=False).strip()
-        stderr = client.logs(container=container, stderr=True, stdout=False).strip()
-        team_logger.info("stdout: %s" % (stdout))
-        team_logger.info("stderr: %s" % (stderr))
-        flag = stdout.strip()
-        team_logger.info("flag: %s" % (flag))
-        flag_submit_url = "http://%s/submitflag/%d/%s?secret=%s" % \
-                          (SUBMIT_SERVER, attacker, flag, DB_SECRET)
-        team_logger.info("submission URL: %s" % (flag_submit_url))
-        r = urllib.urlopen(flag_submit_url).read()
-        response = json.loads(r)
-        team_logger.info("Submit response: %s" % (r))
-        if response["result"] == "correct":
-            team_logger.info("Flag accepted!")
-            attack_success = True
-        else:
-            team_logger.info("Flag not accepted! Reason: %s" % (response["result"]))
-            attack_success = False
-
-        team_logger.info("Inserting exploit status into DB")
-        params = {
-            'secret': DB_SECRET,
-            'attack_success': attack_success,
-            'attacker': attacker,
-            'defender': defender,
-            'service_id': service_id,
-            'stdout': stdout,
-            'stderr': stderr
-            }
-        team_logger.info("values to insert: %s" % (params))
-        exploit_status_url = "http://%s/ranexploit?%s" % \
-                             (STATUS_SERVER, urllib.urlencode(params))
-        r = urllib.urlopen(exploit_status_url).read()
-        team_logger.info("ranexploit returned %s" % (r))
-    except requests.exceptions.ReadTimeout:
-        team_logger.warning("Timeout when waiting for response from exploit container")
-        team_logger.warning("Team ID: %d, Service ID: %d" % (attacker, service_id))
-    finally:
-        team_logger.info("Stopping and deleting container")
         try:
-            client.stop(container["Id"], KILL_TIMEOUT)
-        except docker.errors.NotFound:
-            # Container has probably already exited.
-            team_logger.info("Container not found: probably exited on it's own")
-            pass
+            # Wait till container times out
+            exit_code = client.wait(container, WAIT_TIMEOUT)
+            team_logger.info("Container exited with code %d" % (exit_code))
+            stdout = client.logs(container=container, stdout=True, stderr=False).strip()
+            stderr = client.logs(container=container, stderr=True, stdout=False).strip()
+            team_logger.info("stdout: %s" % (stdout))
+            team_logger.info("stderr: %s" % (stderr))
+            flag = stdout.strip()
+            team_logger.info("flag: %s" % (flag))
+            flag_submit_url = "http://%s/submitflag/%d/%s?secret=%s" % \
+                              (SUBMIT_SERVER, attacker, flag, DB_SECRET)
+            team_logger.info("submission URL: %s" % (flag_submit_url))
+            try:
+                r = urllib.urlopen(flag_submit_url).read()
+                response = json.loads(r)
+                team_logger.info("Submit response: %s" % (r))
+                if response["result"] == "correct":
+                    team_logger.info("Flag accepted!")
+                    attack_success = True
+                else:
+                    team_logger.info("Flag not accepted! Reason: %s" % (response["result"]))
+                    attack_success = False
+            except Exception, e:
+                team_logger.error("Flag submission failed: %s" % (str(e)))
+                team_logger.error("Target: %s" % (env_vars))
+                attack_success = False
 
-        client.remove_container(container["Id"])
-        team_logger.info("""Container stopped and removed successfully. Closing remote
-                    client.""")
-        client.close()
+            team_logger.info("Inserting exploit status into DB")
+            params = {
+                'secret': DB_SECRET,
+                'attack_success': attack_success,
+                'attacker': attacker,
+                'defender': target["team_id"],
+                'service_id': service_id,
+                'stdout': stdout,
+                'stderr': stderr
+                }
+            team_logger.info("values to insert: %s" % (params))
+            exploit_status_url = "http://%s/ranexploit?%s" % \
+                                 (STATUS_SERVER, urllib.urlencode(params))
+            r = urllib.urlopen(exploit_status_url).read()
+            team_logger.info("ranexploit returned %s" % (r))
+        except requests.exceptions.ReadTimeout:
+            team_logger.warning("Timeout when waiting for response from exploit container")
+            team_logger.warning("Team ID: %d, Service ID: %d" % (attacker, service_id))
+        finally:
+            team_logger.info("Stopping and deleting container")
+            try:
+                client.stop(container["Id"], KILL_TIMEOUT)
+            except docker.errors.NotFound:
+                # Container has probably already exited.
+                team_logger.info("Container not found: probably exited on it's own")
+                pass
+
+            client.remove_container(container["Id"])
+            team_logger.info("""Container stopped and removed successfully. Closing remote
+                        client.""")
+
+    client.close()
+    return
 
 
 if __name__ == "__main__":

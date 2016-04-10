@@ -478,12 +478,9 @@ class ScriptExec(Process):
 
 class ExploitContainerExec(Process):
     def __init__(self, setflag_lock, exploit_lock, host, namespace, image,
-                 attacker_id, attacker_name, defender_id, defender_name, service_id,
-                 service_name, ip, port, delay):
+                 attacker_id, attacker_name, service_id, service_name, delay):
         self.attacker_name = attacker_name
         self.attacker_team_id = attacker_id
-        self.defender_name = defender_name
-        self.defender_team_id = defender_id
         self.delay = delay
         self.exploit_lock = exploit_lock
         self.container_host = host
@@ -493,55 +490,81 @@ class ExploitContainerExec(Process):
         self.service_id = service_id
         self.service_name = service_name
         self.setflag_lock = setflag_lock
-        self.target_host = ip
-        self.target_port = port
         self.script_type = "exploit_container"
 
         super(ExploitContainerExec, self).__init__()
         self.log.info("Acquiring exploit lock in init. Service: %s, team: %s" %
-                      (self.service_name, self.defender_name))
+                      (self.service_name, self.attacker_name))
         self.exploit_lock.clear()
         return
 
     def get_status(self):
         s = {'pid': self.pid, 'exitcode': self.exitcode, 'image': self.image,
-             'namespace': self.namespace, 'defender': self.defender_team_id,
-             'attacker': self.attacker_team_id, 'target_host': self.target_host,
-             'target_port': self.target_port, 'delay': self.delay}
+             'namespace': self.namespace, 'attacker': self.attacker_team_id,
+             'delay': self.delay}
         return s
 
-    def get_current_flag_id(self):
-        self.log.info("Obtaining latest flag ID for service %s, team %s" %
-                      (self.service_name, self.defender_name))
+    def get_current_flag_id(self, team_id):
+        self.log.info("Obtaining latest flag ID for service %s, team %d" %
+                      (self.service_name, team_id))
         param = urllib.urlencode({'secret': DB_SECRET})
         url = 'http://%s/getlatestflagandcookie/%d/%d?%s' % \
-              (DB_HOST, int(self.defender_team_id), int(self.service_id), param)
+              (DB_HOST, int(team_id), int(self.service_id), param)
         o = urllib.urlopen(url).read()
         ret = json.loads(o)
         if ret is None:
-            self.log.error('No flag found for service %s, team %s.' %
-                           (self.service_name, self.defender_name))
+            self.log.error('No flag found for service %s, team %d.' %
+                           (self.service_name, team_id))
             return None
 
-        self.log.info('/getlatestflagandcookie for service %s of team %s returned %s'
-                      % (self.service_name, self.defender_name, str(ret)))
+        self.log.info('/getlatestflagandcookie for service %s of team %d returned %s'
+                      % (self.service_name, team_id, str(ret)))
         return ret['flag_id']
+
+    def get_targets(self):
+        param = urllib.urlencode({'secret': DB_SECRET})
+        url = 'http://%s/getservicesstate?%s' % (DB_HOST, param)
+        services_states = json.loads(urllib.urlopen(url).read())["teams"]
+        up_team_ids = []
+        for team in services_states:
+            for service in team["services"]:
+                if service["service_id"] == self.service_id and \
+                   service["state"] == SERVICE_UP:
+                    up_team_ids.append(team["team_id"])
+
+        targets = []
+        url = 'http://%s/state?%s' % (DB_HOST, param)
+        game_state = json.loads(urllib.urlopen(url).read())
+        for team_id in up_team_ids:
+            if team_id == self.attacker_team_id:
+                continue
+
+            for location in game_state['locations']:
+                if location["team_id"] == team_id and \
+                   location["service_id"] == self.service_id:
+                    target = {"team_id": team_id,
+                              "ip": location['host_ip'],
+                              "port": location["host_port"],
+                              "flag_id": self.get_current_flag_id(team_id)}
+                    if target["flag_id"] is not None:
+                        targets.append(target)
+
+        return targets
 
     def run(self):
         self.log.info("Sleeping")
         time.sleep(self.delay)
-        self.log.info("Waiting on setflag lock. Service %s, attacker %s defender %s"
-                      % (self.service_name, self.attacker_name, self.defender_name))
+        self.log.info("Waiting on setflag lock. Service %s, attacker %s"
+                      % (self.service_name, self.attacker_name))
         self.setflag_lock.wait()
-        self.log.info("Setflag lock released. Fetching current flag ID.")
-        flag_id = self.get_current_flag_id()
-        self.log.info("Service: %s, team: %s, flag ID is %s." %
-                      (self.service_name, self.defender_name, flag_id))
-        if flag_id is not None:
+        self.log.info("Setflag lock released. Fetching current targets.")
+        self.targets = self.get_targets()
+        self.log.info("Service: %s, attacker: %s, targets: %s." %
+                      (self.service_name, self.attacker_name, json.dumps(self.targets)))
+        if self.targets is not None:
             args = [SANDBOX_PYTHON_PATH, EXPLOIT_RUNNER, self.container_host,
-                    self.namespace, self.image, self.target_host,
-                    str(self.target_port), str(self.service_id), str(flag_id),
-                    str(self.attacker_team_id), str(self.defender_team_id)]
+                    self.namespace, self.image, str(self.attacker_team_id),
+                    str(self.service_id), json.dumps(self.targets)]
             self.log.info("Running exploit with args %s" % (args))
             self.process = subprocess.Popen(args, stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE)
@@ -554,11 +577,10 @@ class ExploitContainerExec(Process):
             else:
                 self.log.info("Container runner returned %d" % (exit_code))
         else:
-            self.log.error("Flag ID not found! Team: %s, service: %s" %
-                           (self.defender_name, self.service_name))
+            self.log.error("No targets found for service: %s" % (self.service_name))
 
-        self.log.info("Releasing exploit lock. service %s, defender %s" %
-                      (self.service_name, self.defender_name))
+        self.log.info("Releasing exploit lock. service %s, attacker %s" %
+                      (self.service_name, self.attacker_name))
         self.exploit_lock.set()
         return
 
@@ -839,11 +861,7 @@ class Scheduler:
                     container_id = entry["id"]
                     container = self.exploit_containers[container_id]
                     attacker_id = container["team_id"]
-                    defender_id = team["team_id"]
-                    if attacker_id == defender_id:
-                        # Don't run a team's exploit against itself
-                        continue
-
+                    assert(attacker_id == team["team_id"])
                     exploit_lock = Event()
                     exploit_lock.set()
                     if srvid in self.exploit_locks:
@@ -851,15 +869,12 @@ class Scheduler:
                     else:
                         self.exploit_locks = [exploit_lock]
 
-                    service_ip, service_port = \
-                        self.service_locations[team["team_id"]][srvid]
                     container_host = container["host"]
                     image_name = container["image_name"]
                     namespace = container["registry_namespace"]
                     self.run_exploit_container(setflag_lock, exploit_lock,
                                                container_host, namespace, image_name,
-                                               attacker_id, defender_id, srvid,
-                                               service_ip, service_port, delay)
+                                               attacker_id, srvid, delay)
 
         return
 
@@ -875,16 +890,13 @@ class Scheduler:
         se.start()
 
     def run_exploit_container(self, setflag_lock, exploit_lock, container_host,
-                              namespace, image, attacker_id, defender_id, service_id,
-                              service_ip, service_port, delay):
+                              namespace, image, attacker_id, service_id, delay):
         self.log.info("Running exploit container")
         attacker_name = self.teams[attacker_id]["team_name"]
-        defender_name = self.teams[defender_id]["team_name"]
         service_name = self.services[service_id]["service_name"]
         ce = ExploitContainerExec(setflag_lock, exploit_lock, container_host,
                                   namespace, image, attacker_id, attacker_name,
-                                  defender_id, defender_name, service_id,
-                                  service_name, service_ip, service_port, delay)
+                                  service_id, service_name, delay)
         self.process_list.append(ce)
         ce.start()
         return

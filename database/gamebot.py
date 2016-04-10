@@ -88,7 +88,7 @@ def main():
         # Decide what scripts to run against each team
         for team_id in team_ids:
             list_of_scripts_to_execute = \
-                get_list_of_scripts_and_exploits_to_run(c, service_ids,
+                get_list_of_scripts_and_exploits_to_run(c, team_id, service_ids,
                                                         num_benign_scripts)
 
             c.execute("""insert into team_scripts_run_status (team_id, tick_id,
@@ -169,7 +169,7 @@ def get_exploit_containers_needing_update(cursor):
     return cursor.fetchall()
 
 
-def get_list_of_scripts_and_exploits_to_run(c, service_ids, num_benign_scripts):
+def get_list_of_scripts_and_exploits_to_run(c, team_id, service_ids, num_benign_scripts):
     scripts_and_exploits_to_run = []
 
     # we want to run all the set flags first, then a random mix of benign and get flags
@@ -206,7 +206,8 @@ def get_list_of_scripts_and_exploits_to_run(c, service_ids, num_benign_scripts):
 
     scripts_and_exploits_to_run.extend(set_flag_scripts)
 
-    c.execute("""select id from containers where type='exploit'""")
+    c.execute("""select id from containers where type='exploit' and team_id=%s""",
+              (team_id, ))
     exploit_containers = [{"id": result["id"], "type": "exploit_container"} for
                           result in c.fetchall()]
 
