@@ -220,9 +220,10 @@ CREATE TABLE `exploits_status` (
   PRIMARY KEY (`id`),
   INDEX (`is_attack_success` ASC),
   INDEX (`created_on` ASC),
-  INDEX (`defending_team_id` ASC, `service_id` ASC, `created_on` ASC),
+  INDEX (`service_id` ASC, `created_on` ASC),
   INDEX `fk_exploit_service_id_idx` (`service_id` ASC),
-  INDEX `fk_exploit_att_team_id_idx` (`attacking_team_id` ASC),
+  INDEX `fk_exploits_def_team_id_idx` (`defending_team_id` ASC),
+  INDEX `fk_exploits_att_team_id_idx` (`attacking_team_id` ASC),
   CONSTRAINT `fk_exploit_service_id`
     FOREIGN KEY (`service_id`)
     REFERENCES `services` (`id`)
