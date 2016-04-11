@@ -178,24 +178,17 @@ CREATE TABLE `ticks` (
 
 
 -- -----------------------------------------------------
--- Table `team_scripts_run_status`
+-- Table `scripts_run_status`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `team_scripts_run_status` ;
+DROP TABLE IF EXISTS `scripts_run_status` ;
 
-CREATE TABLE `team_scripts_run_status` (
+CREATE TABLE `scripts_run_status` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `team_id` INT(11) NOT NULL,
   `tick_id` INT(11) NOT NULL,
   `json_list_of_scripts_to_run` MEDIUMTEXT NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX (`tick_id` ASC),
-  INDEX `team_id_idx` (`team_id` ASC),
-  CONSTRAINT `fk_script_run_status_team_id`
-    FOREIGN KEY (`team_id`)
-    REFERENCES `teams` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
   CONSTRAINT `fk_scripts_run_status_tick_id`
     FOREIGN KEY (`tick_id`)
     REFERENCES `ticks` (`id`)
