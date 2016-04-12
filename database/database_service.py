@@ -559,7 +559,10 @@ def ran_exploit():
     if secret != DB_SECRET:
         abort(401)
 
-    attack_success = bool(request.args.get('attack_success'))
+    if request.args.get('attack_success') == 'False':
+        attack_success = False
+    else:
+        attack_success = True
     attacking_team = int(request.args.get('attacker'))
     defending_team = int(request.args.get('defender'))
     service_id = int(request.args.get('service_id'))
