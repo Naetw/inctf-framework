@@ -47,7 +47,6 @@ def main():
               "until the next tick."
         time.sleep(seconds_left)
 
-    team_ids = get_team_ids(c)
     service_ids = get_service_ids(c)
 
     while True:
@@ -85,17 +84,14 @@ def main():
         num_benign_scripts = random.randint(max(1, NUMBER_OF_BENIGN_SCRIPTS - 1),
                                             NUMBER_OF_BENIGN_SCRIPTS + 1)
 
-        # Decide what scripts to run against each team
-        for team_id in team_ids:
-            list_of_scripts_to_execute = \
-                get_list_of_scripts_and_exploits_to_run(c, team_id, service_ids,
-                                                        num_benign_scripts)
+        # Make list of scripts and exploits to run in next tick
+        scripts_and_exploits_to_execute = \
+            get_scripts_and_exploits_to_run(c, service_ids, num_benign_scripts)
 
-            c.execute("""insert into team_scripts_run_status (team_id, tick_id,
-                      json_list_of_scripts_to_run, created_on) values (%s, %s, %s,
-                      %s)""", (team_id, tick_id,
-                               json.dumps(list_of_scripts_to_execute),
-                               datetime.now().isoformat()))
+        c.execute("""insert into scripts_run_status (tick_id,
+                  json_list_of_scripts_to_run, created_on) values (%s, %s, %s)""",
+                  (tick_id, json.dumps(scripts_and_exploits_to_execute),
+                   datetime.now().isoformat()))
 
         # Commit everything to the db
         db.commit()
@@ -169,8 +165,8 @@ def get_exploit_containers_needing_update(cursor):
     return cursor.fetchall()
 
 
-def get_list_of_scripts_and_exploits_to_run(c, team_id, service_ids, num_benign_scripts):
-    scripts_and_exploits_to_run = []
+def get_scripts_and_exploits_to_run(c, service_ids, num_benign_scripts):
+    scripts_and_exploits_to_run = {}
 
     # we want to run all the set flags first, then a random mix of benign and get flags
     set_flag_scripts = []
@@ -204,28 +200,20 @@ def get_list_of_scripts_and_exploits_to_run(c, team_id, service_ids, num_benign_
     random.shuffle(set_flag_scripts)
     random.shuffle(get_flag_scripts)
 
-    scripts_and_exploits_to_run.extend(set_flag_scripts)
+    scripts_and_exploits_to_run['setflag'] = set_flag_scripts
 
-    c.execute("""select id from containers where type='exploit' and team_id=%s""",
-              (team_id, ))
+    c.execute("""select id from containers where type='exploit'""")
     exploit_containers = [{"id": result["id"], "type": "exploit_container"} for
                           result in c.fetchall()]
 
-    other_scripts = []
-    other_scripts.extend(exploit_containers)
+    other_scripts = exploit_containers
     other_scripts.extend(benign_scripts)
     random.shuffle(other_scripts)
 
-    scripts_and_exploits_to_run.extend(other_scripts)
-    scripts_and_exploits_to_run.extend(get_flag_scripts)
+    scripts_and_exploits_to_run['benign-and-exploits'] = other_scripts
+    scripts_and_exploits_to_run['getflag'] = get_flag_scripts
 
     return scripts_and_exploits_to_run
-
-
-def get_team_ids(c):
-    c.execute("""select id from teams""")
-
-    return set(r['id'] for r in c.fetchall())
 
 
 def get_service_ids(c):

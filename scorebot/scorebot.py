@@ -39,7 +39,7 @@ SIGMA_FACTOR = 10.0/100  # (10 percent of the script call interval)
 SCRIPT_TIMEOUT = 300
 SETUP_SLEEP = 5  # seconds
 STATE_CHECK_INTERVAL = 2
-STATE_EXPIRE_MIN = 5  # seconds
+STATE_EXPIRE_MIN = 10  # seconds
 SET_GET_FLAG_TIME_DIFFERENCE_MIN = 3.0
 
 SERVICE_DOWN = 0
@@ -483,6 +483,7 @@ class ExploitContainerExec(Process):
         self.attacker_team_id = attacker_id
         self.delay = delay
         self.exploit_lock = exploit_lock
+        self.flag_ids = {}
         self.container_host = host
         self.image = image
         self.log = logging.getLogger('__ExploitContainerExec__')
@@ -504,64 +505,61 @@ class ExploitContainerExec(Process):
              'delay': self.delay}
         return s
 
-    def get_current_flag_id(self, team_id):
-        self.log.info("Obtaining latest flag ID for service %s, team %d" %
-                      (self.service_name, team_id))
-        param = urllib.urlencode({'secret': DB_SECRET})
-        url = 'http://%s/getlatestflagandcookie/%d/%d?%s' % \
-              (DB_HOST, int(team_id), int(self.service_id), param)
-        o = urllib.urlopen(url).read()
-        ret = json.loads(o)
-        if ret is None:
-            self.log.error('No flag found for service %s, team %d.' %
-                           (self.service_name, team_id))
-            return None
-
-        self.log.info('/getlatestflagandcookie for service %s of team %d returned %s'
-                      % (self.service_name, team_id, str(ret)))
-        return ret['flag_id']
-
     def get_targets(self):
+        """
+        Any team which had a flag stored successfully in last round is a target. We
+        find this based on latest flag IDs rather than service states since states
+        aren't updated in time.
+        """
+
         param = urllib.urlencode({'secret': DB_SECRET})
-        url = 'http://%s/getservicesstate?%s' % (DB_HOST, param)
-        services_states = json.loads(urllib.urlopen(url).read())["teams"]
+        url = 'http://%s/getlatestflagids?%s' % (DB_HOST, param)
+        flag_ids = json.loads(urllib.urlopen(url).read())["flag_ids"]
         up_team_ids = []
-        for team in services_states:
-            for service in team["services"]:
-                if service["service_id"] == self.service_id and \
-                   service["state"] == SERVICE_UP:
-                    up_team_ids.append(team["team_id"])
+        for team_id in flag_ids:
+            if int(team_id) == self.attacker_team_id:
+                continue
+
+            if str(self.service_id) in flag_ids[team_id] and \
+               flag_ids[team_id][str(self.service_id)] is not None:
+                self.log.info("Team %s is a target for attacker %s, service %s" %
+                              (team_id, self.attacker_name, self.service_name))
+                up_team_ids.append(int(team_id))
+                self.flag_ids[int(team_id)] = flag_ids[team_id][str(self.service_id)]
+            else:
+                self.log.info(("Team %s not a target for attacker %s, service %s." +
+                               "No flag ID not found") %
+                              (team_id, self.attacker_name, self.service_name))
 
         targets = []
         url = 'http://%s/state?%s' % (DB_HOST, param)
         game_state = json.loads(urllib.urlopen(url).read())
         for team_id in up_team_ids:
-            if team_id == self.attacker_team_id:
-                continue
-
             for location in game_state['locations']:
                 if location["team_id"] == team_id and \
                    location["service_id"] == self.service_id:
                     target = {"team_id": team_id,
                               "ip": location['host_ip'],
                               "port": location["host_port"],
-                              "flag_id": self.get_current_flag_id(team_id)}
-                    if target["flag_id"] is not None:
-                        targets.append(target)
+                              "flag_id": self.flag_ids[team_id]}
+                    targets.append(target)
 
         return targets
 
     def run(self):
-        self.log.info("Sleeping")
+        self.log.info("Sleeping for %d seconds" % (self.delay))
         time.sleep(self.delay)
-        self.log.info("Waiting on setflag lock. Service %s, attacker %s"
-                      % (self.service_name, self.attacker_name))
-        self.setflag_lock.wait()
-        self.log.info("Setflag lock released. Fetching current targets.")
+        self.log.info("Waiting on %d setflag locks. Service %s, attacker %s"
+                      % (len(self.setflag_lock), self.service_name,
+                         self.attacker_name))
+        for lock in self.setflag_lock:
+            lock.wait()
+
+        self.log.info("Setflag locks released. Fetching current targets.")
         self.targets = self.get_targets()
         self.log.info("Service: %s, attacker: %s, targets: %s." %
                       (self.service_name, self.attacker_name, json.dumps(self.targets)))
-        if self.targets is not None:
+        if self.targets != []:
             args = [SANDBOX_PYTHON_PATH, EXPLOIT_RUNNER, self.container_host,
                     self.namespace, self.image, str(self.attacker_team_id),
                     str(self.service_id), json.dumps(self.targets)]
@@ -577,7 +575,8 @@ class ExploitContainerExec(Process):
             else:
                 self.log.info("Container runner returned %d" % (exit_code))
         else:
-            self.log.error("No targets found for service: %s" % (self.service_name))
+            self.log.error("No targets found for service %s, attacker %s" %
+                           (self.service_name, self.attacker_name))
 
         self.log.info("Releasing exploit lock. service %s, attacker %s" %
                       (self.service_name, self.attacker_name))
@@ -604,6 +603,9 @@ class Scheduler:
         self.db = DBClient()
         self.setflag_locks = {}
         self.exploit_locks = {}
+        self.setflag_delays = {}
+        self.getflag_delays = {}
+        self.benign_delays = {}
 
         self.status = {'state_id': 'INIT', 'last_error': None, 'script_err': None,
                        'script_ok': 0, 'script_fail': 0, 'script_tot': 0}
@@ -676,8 +678,10 @@ class Scheduler:
                 self.scripts[int(s['script_id'])] = s
 
             if state['run_scripts'] is not None:
-                for s in state['run_scripts']:
-                    self.run_list[int(s['team_id'])] = s['run_list']
+                self.run_list = state['run_scripts']
+
+            self.status['script_tot'] = sum([len(alist) for alist in
+                                             self.run_list.values()])
 
             for container in state['exploit_containers']:
                 self.exploit_containers[container["id"]] = container
@@ -699,6 +703,10 @@ class Scheduler:
                 print msg
                 self.state_id = state['state_id']
                 self.status['state_id'] = self.state_id
+                self.compute_delays()
+                self.log.error("Setflag delays: %s" % (self.setflag_delays))
+                self.log.error("Getflag delays: %s" % (self.getflag_delays))
+                self.log.error("Benign delays: %s" % (self.benign_delays))
                 self.kill_process()
         except Exception as e:
             msg = 'update_state:Exception:'+str(e)
@@ -775,106 +783,190 @@ class Scheduler:
 
     def update_all_scripts(self):
         slist = set()
-        for _, scripts in self.run_list.iteritems():
-            for script in scripts:
-                if script["type"] == 'script':
-                    slist.add(script["id"])
+        for etype in self.run_list:
+            for entry in self.run_list[etype]:
+                if entry["type"] == 'script':
+                    slist.add(entry["id"])
 
         for sid in slist:
             self.update_script_repo(sid)
 
-    def get_rand_delay(self, run_list):
-        l = len(run_list)
-        interval = float(self.state_expire-STATE_EXPIRE_MIN) / l
-        d = []
-        last_delay = None
-        for i, entry in enumerate(run_list):
-            # DELAY = INTERVAL +- RANDOMIZED_DELAY
-            delay = i * interval + (interval - random.gauss(interval, SIGMA_FACTOR *
-                                                            (interval)))
-            delay = abs(delay)
+    def compute_delays(self):
+        script_counts = {}
+        for service_id in self.services:
+            script_counts[service_id] = {}
+            self.setflag_delays[service_id] = {}
+            self.getflag_delays[service_id] = {}
+            self.benign_delays[service_id] = {}
+            for team_id in self.teams:
+                script_counts[service_id][team_id] = 0
+                self.setflag_delays[service_id][team_id] = None
+                self.getflag_delays[service_id][team_id] = None
+                self.benign_delays[service_id][team_id] = None
+
+        for entry in [item for alist in self.run_list.values() for item in alist]:
             if entry["type"] == "script":
                 sid = entry["id"]
-                stype = self.scripts[sid]['type']
-                if stype == 'setflag':
-                    last_delay = delay
-                if stype == 'getflag':
-                    if last_delay is not None:
-                        if (delay-last_delay) < SET_GET_FLAG_TIME_DIFFERENCE_MIN:
-                            self.log.info(('delay (%.2f) - last_delay (%.2f) < ' +
-                                           'SET_GET_FLAG_TIME_DIFFERENCE_MIN (%.2f)') %
-                                          (delay, last_delay,
-                                           SET_GET_FLAG_TIME_DIFFERENCE_MIN))
-                            delay = last_delay + SET_GET_FLAG_TIME_DIFFERENCE_MIN
-            elif entry["type"] != "exploit_container":
-                self.log.error("Unknown entry of type %s in run_list" % (entry["type"]))
-
-            d.append(delay)
-
-        return zip(run_list, d)
-
-    def runscripts(self, team):
-        if team['team_id'] not in self.run_list:
-            self.log.info('No script to run for %s.' % (str(team)))
-            return
-
-        self.status['script_tot'] = self.status['script_tot'] + len(self.run_list[team['team_id']])
-
-        # sort by service
-        ss = {}
-        for entry in self.run_list[team['team_id']]:
-            if entry["type"] == "script":
-                sid = int(entry["id"])
-                s = self.scripts[sid]
-                srvid = s['service_id']
+                service_id = self.scripts[sid]["service_id"]
+                for team_id in self.teams:
+                    script_counts[service_id][team_id] += 1
+                    entry["exec_queue_position"] = script_counts[service_id][team_id]
             elif entry["type"] == "exploit_container":
-                eid = int(entry["id"])
-                srvid = self.exploit_containers[eid]["service_id"]
-            if srvid in ss:
-                ss[srvid].append(entry)
-            else:
-                ss[srvid] = [entry]
+                container_id = entry["id"]
+                container = self.exploit_containers[container_id]
+                service_id = container["service_id"]
+                for team_id in self.teams:
+                    # Exploit container won't run against it's owner
+                    if team_id == container['team_id']:
+                        continue
 
-        # randomize delay
-        for srvid, slist in ss.iteritems():
-            # per service
-            setflag_lock = Event()
-            setflag_lock.set()
-            self.setflag_locks[srvid] = setflag_lock
-            rlist = self.get_rand_delay(slist)
-            for entry, delay in rlist:
-                if entry["type"] == "script":
-                    sid = entry["id"]
-                    p = self.update_script(team['team_id'], sid, self.scripts[sid]['is_bundle'])
+                    script_counts[service_id][team_id] += 1
+                    entry["exec_queue_position"] = script_counts[service_id][team_id]
+
+        for entry in self.run_list['setflag']:
+            sid = entry["id"]
+            service_id = self.scripts[sid]["service_id"]
+            for team_id in self.teams:
+                interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
+                    script_counts[service_id][team_id]
+                delay = abs((entry["exec_queue_position"] + 1) * interval -
+                            random.gauss(interval, (SIGMA_FACTOR * interval)))
+                self.setflag_delays[service_id][team_id] = delay
+
+        for entry in self.run_list['getflag']:
+            sid = entry["id"]
+            service_id = self.scripts[sid]["service_id"]
+            for team_id in self.teams:
+                delay = abs((entry["exec_queue_position"] + 1) * interval -
+                            random.gauss(interval, (SIGMA_FACTOR * interval)))
+                last_delay = self.setflag_delays[service_id][team_id]
+                if (delay - last_delay) < SET_GET_FLAG_TIME_DIFFERENCE_MIN:
+                    self.log.info(('delay (%.2f) - last_delay (%.2f) < ' +
+                                   'SET_GET_FLAG_TIME_DIFFERENCE_MIN (%.2f)') %
+                                  (delay, last_delay,
+                                   SET_GET_FLAG_TIME_DIFFERENCE_MIN))
+                    delay = last_delay + SET_GET_FLAG_TIME_DIFFERENCE_MIN
+
+                self.getflag_delays[service_id][team_id] = delay
+
+        for entry in self.run_list['benign-and-exploits']:
+            if entry["type"] == "exploit_container":
+                container_id = entry["id"]
+                container = self.exploit_containers[container_id]
+                service_id = container["service_id"]
+                delay = 0
+                for team_id in self.teams:
+                    interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
+                        script_counts[service_id][team_id]
+                    delay += abs((entry["exec_queue_position"] + 1) * interval -
+                                 random.gauss(interval, (SIGMA_FACTOR * interval)))
+
+                entry["delay"] = abs(delay / len(self.teams.keys()))
+                self.log.error(entry["delay"])
+            elif entry["type"] == "script":
+                sid = entry["id"]
+                service_id = self.scripts[sid]["service_id"]
+                for team_id in self.teams:
+                    interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
+                        script_counts[service_id][team_id]
+                    delay = abs((entry["exec_queue_position"] + 1) * interval -
+                                random.gauss(interval, (SIGMA_FACTOR * interval)))
+                    self.benign_delays[service_id][team_id] = delay
+        return
+
+    def runscripts(self):
+        self.run_setflag_scripts()
+        self.run_benign_scripts_and_exploits()
+        self.run_getflag_scripts()
+        return
+
+    def run_setflag_scripts(self):
+        for entry in self.run_list['setflag']:
+            sid = entry["id"]
+            s = self.scripts[sid]
+            service_id = s['service_id']
+            for team_id in self.teams:
+                setflag_lock = Event()
+                setflag_lock.set()
+                if service_id in self.setflag_locks:
+                    self.setflag_locks[service_id][team_id] = setflag_lock
+                else:
+                    self.setflag_locks[service_id] = {team_id: setflag_lock}
+                p = self.update_script(team_id, sid, s['is_bundle'])
+                if p is None:
+                    continue
+
+                ip, port = self.service_locations[team_id][service_id]
+                locks = [setflag_lock]
+                self.runscript(locks, team_id, sid, service_id, SCRIPT_TIMEOUT,
+                               s['type'], p, ip, port,
+                               self.setflag_delays[service_id][team_id])
+
+        return
+
+    def run_getflag_scripts(self):
+        for entry in self.run_list['getflag']:
+            sid = entry["id"]
+            s = self.scripts[sid]
+            for team_id in self.teams:
+                p = self.update_script(team_id, sid, s['is_bundle'])
+                if p is None:
+                    continue
+
+                ip, port = self.service_locations[team_id][s['service_id']]
+                locks = [self.setflag_locks[s['service_id']][team_id]]
+                for other_team_id in self.teams:
+                    if team_id == other_team_id:
+                        continue
+
+                    if s['service_id'] in self.exploit_locks and \
+                       other_team_id in self.exploit_locks[s['service_id']]:
+                        locks.append(self.exploit_locks[s['service_id']][other_team_id])
+
+                self.runscript(locks, team_id, sid, s['service_id'], SCRIPT_TIMEOUT,
+                               s['type'], p, ip, port,
+                               self.getflag_delays[s['service_id']][team_id])
+
+        return
+
+    def run_benign_scripts_and_exploits(self):
+        for entry in self.run_list["benign-and-exploits"]:
+            if entry["type"] == "script":
+                sid = entry["id"]
+                s = self.scripts[sid]
+                for team_id in self.teams:
+                    p = self.update_script(team_id, sid, s['is_bundle'])
                     if p is None:
                         continue
-                    s = self.scripts[sid]
-                    ip = self.service_locations[team['team_id']][s['service_id']][0]
-                    port = self.service_locations[team['team_id']][s['service_id']][1]
-                    locks = [setflag_lock]
-                    if s['type'] == 'getflag' and srvid in self.exploit_locks:
-                        locks = locks + self.exploit_locks[srvid]
+                    ip, port = self.service_locations[team_id][s['service_id']]
+                    self.runscript([], team_id, sid, s['service_id'],
+                                   SCRIPT_TIMEOUT, s['type'], p, ip, port,
+                                   self.benign_delays[s['service_id']][team_id])
+            elif entry["type"] == "exploit_container":
+                container_id = entry["id"]
+                container = self.exploit_containers[container_id]
+                attacker_id = container["team_id"]
+                service_id = container["service_id"]
+                exploit_lock = Event()
+                exploit_lock.set()
+                if service_id in self.exploit_locks:
+                    self.exploit_locks[service_id][attacker_id] = exploit_lock
+                else:
+                    self.exploit_locks[service_id] = {attacker_id: exploit_lock}
 
-                    self.runscript(locks, team['team_id'], sid, s['service_id'],
-                                   SCRIPT_TIMEOUT, s['type'], p, ip, port, delay)
-                elif entry["type"] == "exploit_container":
-                    container_id = entry["id"]
-                    container = self.exploit_containers[container_id]
-                    attacker_id = container["team_id"]
-                    assert(attacker_id == team["team_id"])
-                    exploit_lock = Event()
-                    exploit_lock.set()
-                    if srvid in self.exploit_locks:
-                        self.exploit_locks[srvid].append(exploit_lock)
-                    else:
-                        self.exploit_locks = [exploit_lock]
+                setflag_locks = []
+                for team_id in self.teams:
+                    if attacker_id == team_id:
+                        continue
 
-                    container_host = container["host"]
-                    image_name = container["image_name"]
-                    namespace = container["registry_namespace"]
-                    self.run_exploit_container(setflag_lock, exploit_lock,
-                                               container_host, namespace, image_name,
-                                               attacker_id, srvid, delay)
+                    setflag_locks.append(self.setflag_locks[service_id][team_id])
+
+                container_host = container["host"]
+                image_name = container["image_name"]
+                namespace = container["registry_namespace"]
+                self.run_exploit_container(setflag_locks, exploit_lock,
+                                           container_host, namespace, image_name,
+                                           attacker_id, service_id, entry["delay"])
 
         return
 
@@ -999,15 +1091,14 @@ class Scheduler:
             self.log.error(traceback.format_exc())
             self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
 
-        for i, t in self.teams.iteritems():
-            try:
-                print 'Runscripts team %d' % (i)
-                self.runscripts(t)
-            except Exception as e:
-                msg = 'schedule_scripts:Exception:' + str(e)
-                self.log.error(msg)
-                self.log.error(traceback.format_exc())
-                self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
+        try:
+            self.runscripts()
+        except Exception as e:
+            msg = 'schedule_scripts:Exception:' + str(e)
+            self.log.error(msg)
+            self.log.error(traceback.format_exc())
+            self.status['last_error'] = str(datetime.datetime.now()) + ' : ' + msg
+
         return
 
     def run(self):

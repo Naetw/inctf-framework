@@ -57,23 +57,15 @@ def current_state():
 
     result['scripts'] = c.fetchall()
 
-    c.execute("""select team_scripts_run_status.team_id as team_id,
-              team_scripts_run_status.json_list_of_scripts_to_run as json_list from
-              team_scripts_run_status where team_scripts_run_status.tick_id = %s""",
+    c.execute("""select scripts_run_status.json_list_of_scripts_to_run as json_list
+              from scripts_run_status where scripts_run_status.tick_id = %s""",
               (current_tick,))
 
-    run_scripts = []
-
-    for team_scripts_to_run in c.fetchall():
-        team_id = team_scripts_to_run['team_id']
-        json_list = team_scripts_to_run['json_list']
-
-        list_of_services = json.loads(json_list)
-
-        run_scripts.append({'team_id': team_id,
-                            'run_list': list_of_services})
-
-    result['run_scripts'] = run_scripts
+    row = c.fetchone()
+    if row is not None:
+        result['run_scripts'] = json.loads(row['json_list'])
+    else:
+        result['run_scripts'] = None
 
     c.execute("""select id, name, registry_namespace, image_name, team_id, service_id
               from containers where type='exploit'""")
