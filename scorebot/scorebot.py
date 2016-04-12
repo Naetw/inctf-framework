@@ -704,9 +704,6 @@ class Scheduler:
                 self.state_id = state['state_id']
                 self.status['state_id'] = self.state_id
                 self.compute_delays()
-                self.log.error("Setflag delays: %s" % (self.setflag_delays))
-                self.log.error("Getflag delays: %s" % (self.getflag_delays))
-                self.log.error("Benign delays: %s" % (self.benign_delays))
                 self.kill_process()
         except Exception as e:
             msg = 'update_state:Exception:'+str(e)
@@ -862,7 +859,6 @@ class Scheduler:
                                  random.gauss(interval, (SIGMA_FACTOR * interval)))
 
                 entry["delay"] = abs(delay / len(self.teams.keys()))
-                self.log.error(entry["delay"])
             elif entry["type"] == "script":
                 sid = entry["id"]
                 service_id = self.scripts[sid]["service_id"]
