@@ -39,7 +39,7 @@ SIGMA_FACTOR = 10.0/100  # (10 percent of the script call interval)
 SCRIPT_TIMEOUT = 300
 SETUP_SLEEP = 5  # seconds
 STATE_CHECK_INTERVAL = 2
-STATE_EXPIRE_MIN = 10  # seconds
+STATE_EXPIRE_MIN = 5  # seconds
 SET_GET_FLAG_TIME_DIFFERENCE_MIN = 3.0
 
 SERVICE_DOWN = 0
