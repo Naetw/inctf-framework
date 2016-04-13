@@ -806,8 +806,8 @@ class Scheduler:
                 sid = entry["id"]
                 service_id = self.scripts[sid]["service_id"]
                 for team_id in self.teams:
-                    script_counts[service_id][team_id] += 1
                     entry["exec_queue_position"] = script_counts[service_id][team_id]
+                    script_counts[service_id][team_id] += 1
             elif entry["type"] == "exploit_container":
                 container_id = entry["id"]
                 container = self.exploit_containers[container_id]
@@ -817,8 +817,8 @@ class Scheduler:
                     if team_id == container['team_id']:
                         continue
 
-                    script_counts[service_id][team_id] += 1
                     entry["exec_queue_position"] = script_counts[service_id][team_id]
+                    script_counts[service_id][team_id] += 1
 
         for entry in self.run_list['setflag']:
             sid = entry["id"]
