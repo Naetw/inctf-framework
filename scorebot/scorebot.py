@@ -846,6 +846,8 @@ class Scheduler:
                                   (delay, last_delay,
                                    SET_GET_FLAG_TIME_DIFFERENCE_MIN))
                     delay = last_delay + SET_GET_FLAG_TIME_DIFFERENCE_MIN
+                    if delay > self.state_expire:
+                        delay = self.state_expire - (2 * STATE_EXPIRE_MIN)
 
                 self.getflag_delays[service_id][team_id] = delay
 
