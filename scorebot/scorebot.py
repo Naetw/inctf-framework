@@ -478,7 +478,8 @@ class ScriptExec(Process):
 
 class ExploitContainerExec(Process):
     def __init__(self, setflag_lock, exploit_lock, host, namespace, image,
-                 attacker_id, attacker_name, service_id, service_name, delay):
+                 attacker_id, attacker_name, service_id, service_name, delay,
+                 interval):
         self.attacker_name = attacker_name
         self.attacker_team_id = attacker_id
         self.delay = delay
@@ -486,6 +487,7 @@ class ExploitContainerExec(Process):
         self.flag_ids = {}
         self.container_host = host
         self.image = image
+        self.interval = interval
         self.log = logging.getLogger('__ExploitContainerExec__')
         self.namespace = namespace
         self.service_id = service_id
@@ -562,7 +564,8 @@ class ExploitContainerExec(Process):
         if self.targets != []:
             args = [SANDBOX_PYTHON_PATH, EXPLOIT_RUNNER, self.container_host,
                     self.namespace, self.image, str(self.attacker_team_id),
-                    str(self.service_id), json.dumps(self.targets)]
+                    str(self.service_id), json.dumps(self.targets),
+                    str(self.interval)]
             self.log.info("Running exploit with args %s" % (args))
             self.process = subprocess.Popen(args, stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE)
@@ -852,13 +855,15 @@ class Scheduler:
                 container = self.exploit_containers[container_id]
                 service_id = container["service_id"]
                 delay = 0
+                avg_interval_size = 0
                 for team_id in self.teams:
                     interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
                         script_counts[service_id][team_id]
-                    delay += abs((entry["exec_queue_position"] + 1) * interval -
-                                 random.gauss(interval, (SIGMA_FACTOR * interval)))
+                    avg_interval_size += abs(interval)
+                    delay += abs((entry["exec_queue_position"] + 1) * interval)
 
                 entry["delay"] = abs(delay / len(self.teams.keys()))
+                entry["interval"] = abs(avg_interval_size / len(self.teams.keys()))
             elif entry["type"] == "script":
                 sid = entry["id"]
                 service_id = self.scripts[sid]["service_id"]
@@ -962,7 +967,8 @@ class Scheduler:
                 namespace = container["registry_namespace"]
                 self.run_exploit_container(setflag_locks, exploit_lock,
                                            container_host, namespace, image_name,
-                                           attacker_id, service_id, entry["delay"])
+                                           attacker_id, service_id, entry["delay"],
+                                           entry["interval"])
 
         return
 
@@ -978,13 +984,14 @@ class Scheduler:
         se.start()
 
     def run_exploit_container(self, setflag_lock, exploit_lock, container_host,
-                              namespace, image, attacker_id, service_id, delay):
+                              namespace, image, attacker_id, service_id, delay,
+                              interval):
         self.log.info("Running exploit container")
         attacker_name = self.teams[attacker_id]["team_name"]
         service_name = self.services[service_id]["service_name"]
         ce = ExploitContainerExec(setflag_lock, exploit_lock, container_host,
                                   namespace, image, attacker_id, attacker_name,
-                                  service_id, service_name, delay)
+                                  service_id, service_name, delay, interval)
         self.process_list.append(ce)
         ce.start()
         return

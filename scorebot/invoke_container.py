@@ -16,12 +16,12 @@ import docker
 from settings import DB_HOST, DB_SECRET
 
 DOCKER_REGISTRY_SERVER = "localhost:5000"
-KILL_TIMEOUT = 20  # seconds
+KILL_TIMEOUT = None
 LOG_PATH = "/tmp/container-invoker.log"
 REMOTE_DOCKER_PORT = 2375
 SUBMIT_SERVER = DB_HOST
 STATUS_SERVER = SUBMIT_SERVER
-WAIT_TIMEOUT = 30  # seconds
+WAIT_TIMEOUT = None
 
 logging.basicConfig(filename=LOG_PATH, level=logging.INFO, filemode='a',
                     format='%(asctime)s, %(name)s, %(levelname)s, %(message)s',
@@ -101,7 +101,7 @@ def process_exited_container(container, state, attacker, env_vars, target,
 def main():
     logger.info("Starting exploit")
     arguments = ["CONTAINER_HOST", "CONTAINER_NAMESPACE", "CONTAINER_IMAGE",
-                 "ATTACKER_TEAM_ID", "SERVICE_ID", "TARGETS"]
+                 "ATTACKER_TEAM_ID", "SERVICE_ID", "TARGETS", "ROUND_DURATION"]
     if len(sys.argv) != len(arguments) + 1:
         print "Usage: %s %s" % (sys.argv[0], ' '.join(arguments))
         logger.error("Incorrect argument count. Received %d, expected %d." %
@@ -113,10 +113,15 @@ def main():
     image = sys.argv[3]
     attacker = int(sys.argv[4])
     service_id = int(sys.argv[5])
+    duration = float(sys.argv[7])
+    WAIT_TIMEOUT = 0.3 * duration
+    KILL_TIMEOUT = 0.2 * duration
     attacker_name = get_team_name(attacker)
     service_name = get_service_name(service_id)
     team_logger = logging.getLogger("__%s_attacking_%s__" %
                                     (attacker_name, service_name))
+    team_logger.info("Total duration: %f, wait: %f, kill: %f" %
+                     (duration, WAIT_TIMEOUT, KILL_TIMEOUT))
 
     try:
         targets = json.loads(sys.argv[6])
