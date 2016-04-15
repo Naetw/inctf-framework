@@ -347,6 +347,57 @@ def get_latest_flag_ids():
     return json.dumps(to_return)
 
 
+@app.route("/submitflags/<team_id>")
+def submit_flags(team_id):
+    secret = request.args.get('secret')
+
+    if secret != DB_SECRET:
+        abort(401)
+
+    flags = map(str, json.loads(request.args.get('flags')))
+    c = mysql.get_db().cursor()
+    c.execute("""select id, team_id, service_id, flag from flags where flag in %s and
+              created_on >= (select max(created_on) from ticks)""" %
+              (str(tuple(flags))))
+    flag_details = {}
+    for row in c.fetchall():
+        flag_details[row['flag']] = row
+
+    c.execute("""select flag from flag_submission where team_id = %s and created_on
+              >= (select max(created_on) from ticks)""" % (team_id))
+    submitted_flags = {}
+    for row in c.fetchall():
+        submitted_flags[row['flag']] = True
+
+    submission_details = {'correct': 0, 'incorrect': 0, 'self': 0, 'duplicate': 0,
+                          'points': 0}
+    for flag in flags:
+        duplicate_flag = False
+        if flag not in flag_details:
+            submission_details['incorrect'] += 1
+        elif flag in submitted_flags:
+            submission_details['duplicate'] += 1
+            duplicate_flag = True
+        elif flag_details[flag]['team_id'] == team_id:
+            submission_details['self'] += 1
+        else:
+            submission_details['correct'] += 1
+            points = POINTS_PER_CAP
+            submission_details['points'] += points
+            message = """Captured active flag from service %s from team %s""" % \
+                      (flag_details[flag]['service_id'],
+                       flag_details[flag]['team_id'])
+            c.execute("""insert into team_score (team_id, score, reason) values (%s, %s, %s)""",
+                      (team_id, points, message))
+
+        if not duplicate_flag:
+            c.execute("""insert into flag_submission (team_id, flag) values (%s,
+                      %s)""", (team_id, flag))
+
+    mysql.get_db().commit()
+    return json.dumps(submission_details)
+
+
 @app.route("/submitflag/<teamid>/<flag>")
 def submit_flag(teamid, flag):
     secret = request.args.get('secret')
@@ -394,8 +445,8 @@ def submit_flag(teamid, flag):
             if latest_flag_id == submitted_id:
                 # Success! Give this team some points!
                 points = POINTS_PER_CAP
-                message = ("Successfully captured active flag from service %s " +
-                           "from team %s") % (submitted_service, submitted_team_id)
+                message = """Submitted active flag of service %s from team %s via
+                           dashboard""" % (submitted_service, submitted_team_id)
                 c.execute("""insert into team_score (team_id, score, reason,
                           created_on) values (%s, %s, %s, %s)""",
                           (teamid, points, message, datetime.datetime.now().isoformat()))
@@ -559,22 +610,22 @@ def ran_exploit():
     if secret != DB_SECRET:
         abort(401)
 
-    if request.args.get('attack_success') == 'False':
-        attack_success = False
-    else:
-        attack_success = True
     attacking_team = int(request.args.get('attacker'))
-    defending_team = int(request.args.get('defender'))
     service_id = int(request.args.get('service_id'))
     stdout = request.args.get('stdout')
     stderr = request.args.get('stderr')
+    correct = int(request.args.get('correct'))
+    incorrect = int(request.args.get('incorrect'))
+    self = int(request.args.get('self'))
+    duplicate = int(request.args.get('duplicate'))
+    points = int(request.args.get('points'))
 
     c = mysql.get_db().cursor()
-    c.execute("""insert into exploits_status(service_id, defending_team_id,
-              attacking_team_id, is_attack_success, exploit_stdout,
-              exploit_stderr) values (%s, %s, %s, %s, %s, %s)""",
-              (service_id, defending_team, attacking_team, attack_success, stdout,
-               stderr))
+    c.execute("""insert into exploits_status(service_id, attacking_team_id,
+              exploit_stdout, exploit_stderr, correct_count, incorrect_count,
+              self_count, duplicate_count, points) values (%s, %s, %s, %s, %s,
+              %s, %s, %s, %s)""", (service_id, attacking_team, stdout, stderr,
+                                   correct, incorrect, self, duplicate, points))
 
     mysql.get_db().commit()
 

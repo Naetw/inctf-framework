@@ -204,27 +204,23 @@ DROP TABLE IF EXISTS `exploits_status` ;
 CREATE TABLE `exploits_status` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `service_id` INT(11) NOT NULL,
-  `defending_team_id` INT(11) NOT NULL,
   `attacking_team_id` INT(11) NOT NULL,
-  `is_attack_success` TINYINT(1) NOT NULL,
   `exploit_stdout` VARCHAR(2048) NULL,
   `exploit_stderr` VARCHAR(2048) NULL,
+  `correct_count` INT NOT NULL,
+  `incorrect_count` INT NOT NULL,
+  `duplicate_count` INT NOT NULL,
+  `self_count` INT NOT NULL,
+  `points` INT NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  INDEX (`is_attack_success` ASC),
   INDEX (`created_on` ASC),
   INDEX (`service_id` ASC, `created_on` ASC),
   INDEX `fk_exploit_service_id_idx` (`service_id` ASC),
-  INDEX `fk_exploits_def_team_id_idx` (`defending_team_id` ASC),
   INDEX `fk_exploits_att_team_id_idx` (`attacking_team_id` ASC),
   CONSTRAINT `fk_exploit_service_id`
     FOREIGN KEY (`service_id`)
     REFERENCES `services` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_exploit_def_team_id`
-    FOREIGN KEY (`defending_team_id`)
-    REFERENCES `teams` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_exploit_att_team_id`
