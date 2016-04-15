@@ -168,6 +168,9 @@ def generate_scripts_config(services):
             script_config["is_working"] = 1
             configs.append(script_config)
 
+        if "benign" not in service:
+            continue
+
         for script in service["benign"]:
             script_config = {}
             script_config["type"] = "benign"
