@@ -301,8 +301,15 @@ def update_service_containers(db, containers):
             continue
 
         last_line_json = json.loads(output[-1])
-        if 'Downloaded newer image' not in last_line_json['status'] and \
-           'Image is up to date' not in last_line_json['status']:
+        try:
+            if 'Downloaded newer image' not in last_line_json['status'] and \
+               'Image is up to date' not in last_line_json['status']:
+                # Error!
+                logging.error("Pulling image %s failed. Docker client output below." %
+                              (image_url))
+                logging.error("%s" % (output))
+                continue
+        except KeyError:
             # Error!
             logging.error("Pulling image %s failed. Docker client output below." %
                           (image_url))
