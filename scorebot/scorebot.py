@@ -828,7 +828,7 @@ class Scheduler:
             service_id = self.scripts[sid]["service_id"]
             for team_id in self.teams:
                 interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
-                    script_counts[service_id][team_id]
+                    (script_counts[service_id][team_id] * 2)
                 delay = abs((entry["exec_queue_position"] + 1) * interval -
                             random.gauss(interval, (SIGMA_FACTOR * interval)))
                 self.setflag_delays[service_id][team_id] = delay
@@ -838,7 +838,7 @@ class Scheduler:
             service_id = self.scripts[sid]["service_id"]
             for team_id in self.teams:
                 interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
-                    script_counts[service_id][team_id]
+                    (script_counts[service_id][team_id] * 2)
                 delay = abs((entry["exec_queue_position"] + 1) * interval -
                             random.gauss(interval, (SIGMA_FACTOR * interval)))
                 last_delay = self.setflag_delays[service_id][team_id]
@@ -862,18 +862,18 @@ class Scheduler:
                 avg_interval_size = 0
                 for team_id in self.teams:
                     interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
-                        script_counts[service_id][team_id]
+                        (script_counts[service_id][team_id] * 2)
                     avg_interval_size += abs(interval)
                     delay += abs((entry["exec_queue_position"] + 1) * interval)
 
                 entry["delay"] = abs(delay / len(self.teams.keys()))
-                entry["interval"] = abs(avg_interval_size / len(self.teams.keys()))
+                entry["interval"] = abs(4 * avg_interval_size / len(self.teams.keys()))
             elif entry["type"] == "script":
                 sid = entry["id"]
                 service_id = self.scripts[sid]["service_id"]
                 for team_id in self.teams:
                     interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
-                        script_counts[service_id][team_id]
+                        (script_counts[service_id][team_id] * 2)
                     delay = abs((entry["exec_queue_position"] + 1) * interval -
                                 random.gauss(interval, (SIGMA_FACTOR * interval)))
                     self.benign_delays[service_id][team_id] = delay
