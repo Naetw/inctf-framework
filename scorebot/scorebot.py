@@ -837,6 +837,8 @@ class Scheduler:
             sid = entry["id"]
             service_id = self.scripts[sid]["service_id"]
             for team_id in self.teams:
+                interval = float(self.state_expire-STATE_EXPIRE_MIN) / \
+                    script_counts[service_id][team_id]
                 delay = abs((entry["exec_queue_position"] + 1) * interval -
                             random.gauss(interval, (SIGMA_FACTOR * interval)))
                 last_delay = self.setflag_delays[service_id][team_id]
