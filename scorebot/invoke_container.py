@@ -149,6 +149,7 @@ def main():
             'stderr': stderr
             }
         params.update(flag_submit_details)
+        params['total'] = len(targets)
 
         team_logger.info("values to insert: %s" % (params))
         for _ in xrange(5):

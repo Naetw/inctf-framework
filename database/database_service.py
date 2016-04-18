@@ -618,14 +618,16 @@ def ran_exploit():
     incorrect = int(request.args.get('incorrect'))
     self = int(request.args.get('self'))
     duplicate = int(request.args.get('duplicate'))
+    total = int(request.args.get('total'))
     points = int(request.args.get('points'))
 
     c = mysql.get_db().cursor()
     c.execute("""insert into exploits_status(service_id, attacking_team_id,
               exploit_stdout, exploit_stderr, correct_count, incorrect_count,
-              self_count, duplicate_count, points) values (%s, %s, %s, %s, %s,
-              %s, %s, %s, %s)""", (service_id, attacking_team, stdout, stderr,
-                                   correct, incorrect, self, duplicate, points))
+              self_count, duplicate_count, points, target_count) values (%s, %s, %s,
+              %s, %s, %s, %s, %s, %s, %s)""", (service_id, attacking_team, stdout,
+                                               stderr, correct, incorrect, self,
+                                               duplicate, points, total))
 
     mysql.get_db().commit()
 
@@ -645,9 +647,10 @@ def get_exploit_logs():
     if result is not None:
         tick_start_time = result["created_on"]
         c.execute("""select service_id, attacking_team_id as attacker_id,
-        defending_team_id as defender_id, is_attack_success as success,
-        exploit_stdout as stdout, exploit_stderr as stderr from exploits_status where
-        created_on > %s""", (tick_start_time, ))
+        correct_count as correct, incorrect_count as incorrect, duplicate_count as
+        duplicate, self_count as self, target_count as total, exploit_stdout as
+        stdout, exploit_stderr as stderr from exploits_status where created_on >
+        %s""", (tick_start_time, ))
 
         exploit_details = c.fetchall()
     else:

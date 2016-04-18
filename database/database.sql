@@ -211,6 +211,7 @@ CREATE TABLE `exploits_status` (
   `incorrect_count` INT NOT NULL,
   `duplicate_count` INT NOT NULL,
   `self_count` INT NOT NULL,
+  `target_count` INT NOT NULL,
   `points` INT NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

@@ -90,7 +90,6 @@ class RedisUpdater(object):
         exploits_logs = {}
         for raw_entry in raw_exploits_logs:
             attacker = self.teams_names[raw_entry["attacker_id"]]
-            defender = self.teams_names[raw_entry["defender_id"]]
             service = self.services_names[raw_entry["service_id"]]
             if attacker not in exploits_logs:
                 exploits_logs[attacker] = {}
@@ -98,17 +97,19 @@ class RedisUpdater(object):
             if service not in exploits_logs[attacker]:
                 exploits_logs[attacker][service] = {}
 
-            if raw_entry['success'] == 1:
-                data = {'stdout': "",
-                        'stderr': "",
-                        'success': raw_entry['success']
-                        }
+            data = raw_entry
+            if data['total'] == data['correct']:
+                data['stdout'] = "not-displayed"
+                data['stderr'] = "not-displayed"
+                data['success'] = 1
             else:
-                data = {'stdout': raw_entry['stdout'],
-                        'stderr': raw_entry['stderr'],
-                        'success': raw_entry['success']
-                        }
-            exploits_logs[attacker][service][defender] = data
+                data['stdout'] = raw_entry['stdout']
+                data['stderr'] = raw_entry['stderr']
+                data['success'] = 0
+
+            del data['attacker_id']
+            del data['service_id']
+            exploits_logs[attacker][service] = data
 
         self.store_redis('ctf_exploits', json.dumps(exploits_logs))
         return
