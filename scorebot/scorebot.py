@@ -488,6 +488,7 @@ class ExploitContainerExec(Process):
         self.container_host = host
         self.image = image
         self.interval = interval
+        self.is_my_service_up = False
         self.log = logging.getLogger('__ExploitContainerExec__')
         self.namespace = namespace
         self.service_id = service_id
@@ -518,6 +519,11 @@ class ExploitContainerExec(Process):
         url = 'http://%s/getlatestflagids?%s' % (DB_HOST, param)
         flag_ids = json.loads(urllib.urlopen(url).read())["flag_ids"]
         up_team_ids = []
+        if str(self.service_id) not in flag_ids[str(self.attacker_team_id)] or \
+           flag_ids[str(self.attacker_team_id)][str(self.service_id)] is None:
+            self.is_my_service_up = False
+            return []
+
         for team_id in flag_ids:
             if int(team_id) == self.attacker_team_id:
                 continue
@@ -577,6 +583,10 @@ class ExploitContainerExec(Process):
                 self.log.error("Container runner returned %d%s" % (exit_code, msg))
             else:
                 self.log.info("Container runner returned %d" % (exit_code))
+        elif not self.is_my_service_up:
+            self.log.warning(("Not running exploits of service %s, attacker %s" +
+                              "since corresponding service of attacker is not up.") %
+                             (self.service_name, self.attacker_name))
         else:
             self.log.error("No targets found for service %s, attacker %s" %
                            (self.service_name, self.attacker_name))
