@@ -356,9 +356,9 @@ def submit_flags(team_id):
 
     flags = map(str, json.loads(request.args.get('flags')))
     c = mysql.get_db().cursor()
+    query_param = ''.join(["('", "', '".join(flags), "')"])
     c.execute("""select id, team_id, service_id, flag from flags where flag in %s and
-              created_on >= (select max(created_on) from ticks)""" %
-              (str(tuple(flags))))
+              created_on >= (select max(created_on) from ticks)""" % (query_param, ))
     flag_details = {}
     for row in c.fetchall():
         flag_details[row['flag']] = row
