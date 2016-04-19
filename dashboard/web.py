@@ -5,9 +5,10 @@
 import json
 
 # Imports from third party packages
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_httpauth import HTTPBasicAuth
 import redis
+import requests
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -62,6 +63,19 @@ def get_exploit_logs():
         return json.dumps(logs[auth.username()])
     else:
         return json.dumps([])
+
+
+@app.route('/flag', methods=['POST'])
+@auth.login_required
+def submit_flag():
+    post_data = json.loads(request.get_data())
+    flag = post_data["flag"]
+    team = auth.username()
+    params = {"secret": config["api_secret"]}
+    url = "%s/submitflag/%d/%s" % (config["api_base_url"], team_ids[team],
+                                   flag)
+    r = requests.get(url, params=params)
+    return jsonify(r.json())
 
 
 @app.route('/scores')
