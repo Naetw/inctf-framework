@@ -629,6 +629,7 @@ def ran_exploit():
     if secret != DB_SECRET:
         abort(401)
 
+    # For now, we don't store count of flags rejected becaues service is down
     attacking_team = int(request.args.get('attacker'))
     service_id = int(request.args.get('service_id'))
     stdout = request.args.get('stdout')
