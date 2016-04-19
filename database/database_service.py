@@ -416,9 +416,6 @@ def submit_flag(teamid, flag):
     if result:
         return json.dumps({'result': "alreadysubmitted", 'points': None})
 
-    c.execute("""insert into flag_submission (team_id, flag, created_on) values (%s,
-              %s, %s)""", (teamid, flag, datetime.datetime.now().isoformat()))
-
     c.execute("""select id, service_id, team_id from flags where flag = %s""",
               (flag,))
 
@@ -428,6 +425,8 @@ def submit_flag(teamid, flag):
 
     # valid flag
     if result:
+        c.execute("""insert into flag_submission (team_id, flag) values (%s, %s)""",
+                  (teamid, flag))
         # check if the flag is the latest
         submitted_id = result['id']
         submitted_service = result['service_id']
