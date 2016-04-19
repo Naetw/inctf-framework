@@ -17,6 +17,7 @@ FLAG_POSSIBILITIES = string.ascii_uppercase + string.digits + string.ascii_lower
 POINTS_PER_CAP = 100
 
 DB_SECRET = "YOUKNOWSOMETHINGYOUSUCK"
+SERVICE_UP = 2
 
 
 @app.route("/")
@@ -370,9 +371,18 @@ def submit_flags(team_id):
         submitted_flags[row['flag']] = True
 
     submission_details = {'correct': 0, 'incorrect': 0, 'self': 0, 'duplicate': 0,
-                          'points': 0}
+                          'rejected': 0, 'points': 0}
+    services_state = {}
     for flag in flags:
         duplicate_flag = False
+        if flag in flag_details and flag_details[flag]['service_id'] not in \
+           services_state:
+            c.execute("""select state from team_service_state where team_id = %s and
+                      service_id = %s order by created_on desc limit 1""" %
+                      (team_id, flag_details[flag]["service_id"]))
+            result = c.fetchone()
+            services_state[flag_details[flag]["service_id"]] = result["state"]
+
         if flag not in flag_details:
             submission_details['incorrect'] += 1
         elif flag in submitted_flags:
@@ -380,6 +390,8 @@ def submit_flags(team_id):
             duplicate_flag = True
         elif flag_details[flag]['team_id'] == team_id:
             submission_details['self'] += 1
+        elif services_state[flag_details[flag]['service_id']] != SERVICE_UP:
+            submission_details['rejected'] += 1
         else:
             submission_details['correct'] += 1
             points = POINTS_PER_CAP
@@ -431,6 +443,14 @@ def submit_flag(teamid, flag):
         submitted_id = result['id']
         submitted_service = result['service_id']
         submitted_team_id = result['team_id']
+
+        c.execute("""select state from team_service_state where team_id = %s and
+                  service_id = %s order by created_on desc limit 1""",
+                  (teamid, submitted_service))
+
+        result = c.fetchone()
+        if not result or result['state'] != SERVICE_UP:
+            return json.dumps({'result': 'corresponding_service_down', 'points': None})
 
         if submitted_team_id == int(teamid):
             to_return = {'result': 'ownflag', 'points': None}
