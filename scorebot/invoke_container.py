@@ -16,7 +16,7 @@ import requests
 from settings import DB_HOST, DB_SECRET
 
 DOCKER_REGISTRY_SERVER = "linux-zrbf.suse:5000"
-KILL_TIMEOUT = None
+KILL_TIMEOUT = 0
 LOG_PATH = "/tmp/container-invoker.log"
 REMOTE_DOCKER_PORT = 2375
 SUBMIT_SERVER = DB_HOST
@@ -66,8 +66,7 @@ def main():
     attacker = int(sys.argv[4])
     service_id = int(sys.argv[5])
     duration = float(sys.argv[7])
-    WAIT_TIMEOUT = 0.3 * duration
-    KILL_TIMEOUT = 0.2 * duration
+    WAIT_TIMEOUT = 0.9 * duration
     attacker_name = get_team_name(attacker)
     service_name = get_service_name(service_id)
     team_logger = logging.getLogger("__%s_attacking_%s__" %
