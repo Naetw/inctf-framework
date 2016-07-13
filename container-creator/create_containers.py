@@ -47,7 +47,7 @@ def create_argument_parser():
                         help="Folder where deb archives are stored")
     parser.add_argument("-i", "--image", type=str, required=True,
                         help="""Path to OS base image for container. For Ubuntu
-                        images, visit http://cloud-images.ubuntu.com/""")
+                        images, visit https://partner-images.canonical.com/core/""")
     parser.add_argument("-c", "--config", type=str, required=True,
                         help="""Configuration file containing info about contest
                         such as name, team names and names of services""")
