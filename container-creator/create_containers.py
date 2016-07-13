@@ -168,16 +168,19 @@ def generate_scripts_config(services):
             script_config["is_working"] = 1
             configs.append(script_config)
 
-        if "benign" not in service:
-            continue
+        # Uncomment the following lines if you want to run benign scripts too.
+        # If you do not have sufficient resources, you might want to consider not
+        # running these. Teams do not have direct access to live services anyway.
+        #  if "benign" not in service:
+            #  continue
 
-        for script in service["benign"]:
-            script_config = {}
-            script_config["type"] = "benign"
-            script_config["name"] = script
-            script_config["service"] = service["name"]
-            script_config["is_working"] = 1
-            configs.append(script_config)
+        #  for script in service["benign"]:
+            #  script_config = {}
+            #  script_config["type"] = "benign"
+            #  script_config["name"] = script
+            #  script_config["service"] = service["name"]
+            #  script_config["is_working"] = 1
+            #  configs.append(script_config)
 
     return configs
 
