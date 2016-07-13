@@ -28,8 +28,6 @@ def create_argument_parser():
                         help="""Username of gameserver in Docker distribution""")
     parser.add_argument("-dpass", "--distribution-pass", type=str, required=True,
                         help="""Password of gameserver user""")
-    parser.add_argument("-de", "--distribution-email", type=str, required=True,
-                        help="""Email ID of gameserver user""")
     return parser
 
 
@@ -57,8 +55,8 @@ def push_all_containers_to_distribution(teams, services, creds):
     script_file_name = "push_tags.sh"
     fh = open(script_file_name, 'w')
     for _ in xrange(3):
-        fh.write("docker login -u %s -p %s -e \"%s\" %s" %
-                 (creds["user"], creds["pass"], creds["email"], server))
+        fh.write("docker login -u %s -p %s %s" %
+                 (creds["user"], creds["pass"], server))
         fh.write(os.linesep)
 
     total = len(tags_to_push)
@@ -102,7 +100,6 @@ def main():
                        "port": args.distribution_port,
                        "user": args.distribution_user,
                        "pass": args.distribution_pass,
-                       "email": args.distribution_email
                        }
     push_all_containers_to_distribution(teams, services, registry_config)
 
