@@ -27,6 +27,9 @@ name of the service and the Debian package should be present one level above the
 configuration and script files. There are few sample services present in the
 services/ folder which would help getting started with writing services.
 
-*IMPORTANT*: The service name should not contain underscores ('_') since that affects
-the processing of callbacks from Docker distribution. We recommend using hyphen('-')
-instead.
+**IMPORTANT**
+- The service name should not contain underscores ('_') since that affects the
+  processing of callbacks from Docker distribution. We recommend using hyphen('-').
+- We have not tested this infrastructure with services that use DBMSs or similar
+  software to store application data. We have tested with service that store flags in
+  files or sqlite databases in the workdir.
