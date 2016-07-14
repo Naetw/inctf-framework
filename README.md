@@ -27,6 +27,10 @@ how to get started.
 
 See [how to write a service](docs/writing-services.md).
 
+## Writing an exploit
+
+See [how to write an exploit](docs/writing-exploits.md).
+
 ## Further Information
 
 Some details of the InCTF framework is described in our paper [Scalable and
