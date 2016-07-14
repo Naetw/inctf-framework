@@ -62,6 +62,10 @@ iCTF framework by adding few new fields. Services live in the services/ director
 See [Setup and run a contest](docs/setup-and-run-a-contest.md) for a walkthrough on
 how to get started.
 
+## Writing a service
+
+See [how to write a service](docs/writing-services.md).
+
 ## Further Information
 
 Some details of the InCTF framework is described in our paper [Scalable and
