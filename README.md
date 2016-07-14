@@ -37,7 +37,7 @@ consists of third party tools.
 ## Dashboard
 
 This is the CTF dashboard, showing the scoreboard and status of services and allowing
-players to submit flags. The backend of the this component was rewritten in Python.
+players to submit flags. The backend of this component was rewritten in Python.
 Read the [docs](dashboard/README.md).
 
 ## Gamebot
