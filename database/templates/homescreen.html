@@ -3,9 +3,9 @@
   <title>Database API Documentation</title>
 </head>
 <body>
-  <h1>Documentation for the database API for the 2013 iCTF</h1>
+  <h1>Documentation for the database API for the InCTF framework</h1>
 
-  <p>This page will document the API for the database for the 2013 iCTF</p>
+  <p>This page will document the API for the database for the InCTF framework</p>
 
   <h2>Get Current State</h2>
   <p>Make a request to /state?secret=&lt;secret&gt;</p>
@@ -13,13 +13,19 @@
   <p>The JSON response is the following:
 <pre>
 {
-  "state_id": int,
-  "game_id": int,
-  "services": [List of {"service_id": int, "service_name": string, "port": int}],
-  "scripts": [List of {"script_id": int, "is_bundle": (1 | 0) (1 if the script is a bundle, 0 if not), "type": ("exploit"|"benign"|"getflag"|"setflag"), "script_name": string, "service_id": int}]
-  "run_scripts": [List of {"team_id": int (team_id to run scripts against),
-                           "run_list": [Ordered list of int script_ids]}],
-  "state_expire": int (approximate remaining seconds in this tick),
+    "exploit_containers": [List of {"container_id": int, "name": string, "registry_namespace": string,
+                                    "image_name": string, "team_id": int, "service_id": int}],
+    "exploit_containers_host": string,
+    "game_id": int,
+    "locations": [List of {"host_ip": string, "host_port": int, "service_id": int, "team_id": int}],
+    "run_scripts": {"benign-and-exploits": [List of {"id": int, "type": string}],
+                    "getflag": [List of {"id": int, "type": string}],
+                    "setflag": [List of {"id": int, "type": string}]},
+    "scripts": [List of {"script_id": int, "type": ("benign"|"getflag"|"setflag"),
+                         "script_name": string, "service_id": int}],
+                         "is_bundle": (1 | 0) (1 if the script is a bundle, 0 if not),
+    "state_expire": int (approximate remaining seconds in this tick),
+    "state_id": int,
 }
 </pre>
   </p>
@@ -31,8 +37,8 @@
   <p>The JSON response is the following:
 <pre>
 {
-  "services": [List of {"service_id": int, "service_name": string, "port": int, "flag_id_description": string description of the flag id, "description": string description of the service}],
-  "teams": [List of {"team_id": int, "team_name": string, "ip_range": string as XXX.XXX.XXX}],
+  "services": [List of {"service_id": int, "service_name": string, "internal_port": int, "flag_id_description": string description of the flag id, "description": string description of the service}],
+  "teams": [List of {"team_id": int, "team_name": string}],
 }
 </pre>
 
@@ -62,7 +68,6 @@
 }
 </pre>
 
- 
   <h2>Set a Service's State (up, up_non_functional or down)</h2>
   <p>2 is up, 1 is up but nonfunctional, and 0 is down.</p>
   <p>Make a request to /setservicestate/&lt;teamid&gt;/&lt;serviceid&gt;?secret=&lt;secret&gt;&amp;status=(2|1|0)&amp;reason=&lt;why service is up (2), up but non functional (1), or down (0)(you choose)&gt;</p>
@@ -74,14 +79,15 @@
 <pre>
 {
   "scripts" : [List of {"id" : int,
-                        "type": ("exploit", "benign", "getflag", "setflag"),
+                        "type": ("benign", "getflag", "setflag"),
                         "name": NULL if not ours,
                         "is_ours": (1|0, 1 if the script is ours, 0 if it's an attacker team),
                         "is_bundle": (1|0, 1 if a bundle, 0 if not),
                         "feedback": string or NULL,
-                        "team_id" : int or NULL (NULL if it's our exploit), 
-                        "service_id" : int, 
-                        "is_working" : (0, 1, NULL)}]
+                        "team_id" : int or NULL (NULL if it's our exploit),
+                        "service_id" : int,
+                        "is_working" : (0, 1, NULL)},
+                        "latest_script": (1|0)]
 }
 </pre>
 
@@ -98,10 +104,11 @@
   "name": NULL if not ours,
   "is_ours": (1|0, 1 if the script is ours, 0 if it's an attacker team),
   "is_bundle": (1|0, 1 if a bundle, 0 if not),
-  "team_id" : int or NULL (NULL if it's our exploit), 
-  "service_id" : int, 
-  "is_working" : (0, 1, NULL)}]
-
+  "team_id" : int or NULL (NULL if it's our exploit),
+  "service_id" : int,
+  "is_working" : (0, 1, NULL),
+  "latest_script": (1|0),
+  "feedback": string or NULL
 }
   </pre>
 
@@ -154,7 +161,7 @@
 
 flag_ids will be a dictionary mapping team_ids to a dictionary mapping service_id to flag_ids. duh.
 
-</pre>  
+</pre>
 
 
   <h2>Submit a flag from a team</h2>
@@ -176,5 +183,72 @@ flag_ids will be a dictionary mapping team_ids to a dictionary mapping service_i
 }
 </pre>
 
+  <h2>Submit multiple flags</h2>
+  <p>Make a request to /submitflags/&lt;teamid&gt;?secret=&lt;secret&gt;&amp;flags=&lt;JSON-list-of-flags&gt;</p>
+  <p>The JSON response is the following:</p>
+
+  <pre>
+{
+  "correct": int, "incorrect": int, "self": int, "duplicate": int, "rejected": int, "points": int
+}
+  </pre>
+
+  <h2>Get team details</h2>
+  <p>Make a request to /teams?secret=&lt;secret&gt;</p>
+  <p>The JSON response is the following:</p>
+  <pre>
+[List of {"team_id": int, "team_name": int, "port_low": int, "port_high" : int}]
+  </pre>
+
+  <h2>Get service details</h2>
+  <p>Make a request to /services?secret=&lt;secret&gt;</p>
+  <p>The JSON response is the following:</p>
+  <pre>
+[List of {"service_id": int, "service_name": int, "int_port": int(port used by service), "off_ext_port" : int(used to compute container's external along with team's port_low)}]
+  </pre>
+
+  <h2>Mark container as requiring update</h2>
+  <p>POST request to /container_changed. Used by Docker distribution.</p>
+
+  <h2>Updating status of exploit</h2>
+  <p>Make a request to /ranexploit. Accepts following GET parameters</p>
+  <ul>
+  <li>attacker: Team ID of attacker.</li>
+  <li>service_id: ID of service attacked</li>
+  <li>stdout: stdout of exploit container</li>
+  <li>stderr: stderr of exploit container</li>
+  <li>correct: Count of correctly captured flags</li>
+  <li>incorrect: Count of invalid flags</li>
+  <li>self: Count of self flags</li>
+  <li>duplicate: Count of duplicate flags</li>
+  <li>total: Total number of flags submitted</li>
+  <li>points: Total points earned in capture</li>
+  </ul>
+
+  <p>The JSON response is the following:</p>
+<pre>
+{
+  "result" : "great success",
+}
+</pre>
+
+  <h2>Exploit logs</h2>
+  <p>Make a request to /exploitlogs?secret=&lt;secret&gt;</p>
+  <p>The JSON response is the following:</p>
+<pre>
+[List of {"service_id": int, "attacker_id": int, "correct": int, "incorrect": int, "duplicate": int, "self": int, "stdout": string, "stderr": string}]
+</pre>
+
+  <h2>List of changed containers</h2>
+  <p>Make a request to /changed_containers?secret=&lt;secret&gt;</p>
+  <p>The JSON response is the following:</p>
+  <pre>
+[List of {"team_id": int, "service_id": int, "type": ("SERVICE"|"EXPLOIT")}]
+  </pre>
+
+  <h2>Time to next tick</h2>
+  <p>Make a request to /tick_duration?secret=&lt;secret&gt;</p>
+  <p>The JSON response is the following:</p>
+  <pre>Integer value of number of seconds left as a string</pre>
 
 </body>
