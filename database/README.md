@@ -12,8 +12,7 @@ templates/homescreen.html.
 ### Import Files
 
 - ctf-database.conf: This file has the upstart script for the database
-  API service
-
+  API service.
 - database.sql: A SQL file to start a blank DB (but still not ready
   for game-time).
 - database_service.py: The HTTP REST-like API. It uses Flask. Has been
@@ -26,9 +25,9 @@ templates/homescreen.html.
 - gamebot.py: Responsible for progressing the game.
 - reset_db.py: The scripts which resets the database based on the
   number of teams and which services are included in this competition.
-  Reads the service info from /opt/database/combined_info.json on the
-  organization VM.
-- settings.py: Has the DB connection info.
+  Accepts name of JSON file with initial DB values as argument.
+- settings.py: Has the DB connection, Docker distribution and remote Docker daemon
+  info.
 - templates/homescreen.html: The documentation for the database API.
 
 ## Gamebot
