@@ -57,7 +57,9 @@ iCTF framework by adding few new fields. Services live in the services/ director
 
 ## Further Information
 
-Some details of the InCTF framework is described in the paper published in [2016
-USENIX Workshop on Advances in Security
-Education](https://www.usenix.org/conference/ase16/workshop-program/presentation/raj).
-The paper describes the high level design and rationale behind the design choices.
+Some details of the InCTF framework is described in our paper [Scalable and
+Lightweight CTF Infrastructures Using Application
+Containers](https://www.usenix.org/conference/ase16/workshop-program/presentation/raj)
+published in [2016 USENIX Workshop on Advances in Security
+Education](https://www.usenix.org/conference/ase16). The paper describes the high
+level design and rationale behind the design choices.
