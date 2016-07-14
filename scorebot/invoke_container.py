@@ -15,7 +15,7 @@ import requests
 # Imports from current project
 from settings import DB_HOST, DB_SECRET
 
-DOCKER_REGISTRY_SERVER = "linux-zrbf.suse:5000"
+DOCKER_REGISTRY_SERVER = "localhost:5000"
 KILL_TIMEOUT = 0
 LOG_PATH = "/tmp/container-invoker.log"
 REMOTE_DOCKER_PORT = 2375
