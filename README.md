@@ -57,6 +57,11 @@ are accessible, the scorebot also runs the exploit containers created by teams.
 The InCTF Framework extends the standard format for creating services laid out by the
 iCTF framework by adding few new fields. Services live in the services/ directory.
 
+## Getting started
+
+See [Setup and run a contest](docs/setup-and-run-a-contest.md) for a walkthrough on
+how to get started.
+
 ## Further Information
 
 Some details of the InCTF framework is described in our paper [Scalable and
