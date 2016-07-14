@@ -111,6 +111,7 @@ Modify dashboard/config.json to set the following information:
    Docker distribution to send notifications to the gameserver whenever an operation
    is performed. An example for configuration is specified below:
 
+   ```
     - name: Gameserver
       url: http://gameserver.domain.or.ip:port/container_changed
       headers:
@@ -118,6 +119,7 @@ Modify dashboard/config.json to set the following information:
       timeout: 1s
       threshold: 5
       backoff: 2s
+   ```
 
    The secret value is the database API secret. Restart registry service after
    modifying the configuration.
