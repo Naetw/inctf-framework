@@ -16,7 +16,9 @@ To include a new service with this infrastructure, the following are required:
     - setflag: string. Relative path to the setflag script.
     - is_working: int. This is currently ignored and included for compatibility with
       iCTF framework.
-2. Debian packaged version of the service.
+2. Debian packaged version of the service. The architecture should match that of the
+   base image used to build the service container. All sample services provided
+   target the 32 bit architecture.
 3. A setflag and getflag script to respectively store and retrieve flags from the
    service.
 
