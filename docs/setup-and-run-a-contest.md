@@ -96,6 +96,17 @@ Modify dashboard/config.json to set the following information:
 
 ## Setting up the container registry.
 
+There are two possible choices we've tried out:
+
+1. Docker distribution + PORTUS on OpenSUSE.
+2. Gitlab CE with container registry support.
+
+We have tested Distribution + PORTUS more but Gitlab is easier to setup and works
+almost similarly. We believe as long as the callback notifications are configured
+properly, any Docker container registry can be used. We document both methods below.
+
+### Setting up PORTUS and Docker distribution
+
 1. During testing, we used OpenSUSE Leap 42.1 to host the Docker distribution and
    PORTUS. See http://port.us.org/documentation.html for installation and
    configuration instructions. It is recommended to setup TLS with a proper
@@ -109,7 +120,7 @@ Modify dashboard/config.json to set the following information:
    testing.
 3. After setting up and testing Docker distribution and PORTUS as required, configure
    Docker distribution to send notifications to the gameserver whenever an operation
-   is performed. An example for configuration is specified below:
+   is performed. An example configuration is specified below:
 
    ```
     - name: Gameserver
@@ -130,6 +141,24 @@ Modify dashboard/config.json to set the following information:
 6. Set the location of Docker distribution and credentials of the PORTUS
    administrator user created when configuring PORTUS in database/settings.py and
    scorebot/invoke_container.py.
+
+### Setting up Gitlab CE
+
+Note: These steps could be incomplete/incorrect. Corrections and approvals welcome.
+
+Gitlab CE is simpler to setup than PORTUS + Distribution since Distribution is well
+integrated into Gitlab. It also provides lots of monitoring tools, easily scales to
+multiple machines and more features.
+
+1. Install Gitlab CE from https://about.gitlab.com/downloads/ and configure it.
+2. Enable container registry Gitlab as specified in
+   http://docs.gitlab.com/ce/administration/container_registry.html.
+3. Create groups for different teams and member users in each team. The Gitlab API
+   can be useful to automate the process.
+4. Configure callback notification just like in case of PORTUS + Distribution. Be
+   sure to restart Gitlab after doing so.
+5. Set the location of Docker distribution and credentials of Gitlab administrator in
+   database/settings.py and scorebot/invoke_container.py
 
 ## Pushing container images to the registry
 
